@@ -6,6 +6,7 @@ My Build:
 - Windows 11
 - VSCode - (Some extensions: Pylance, Python, Python Debugger, Python Environment Manager, Python Extension Pack, Python Indent, Jupyter)
 - Python3.12
+- pip v24
 
 ## Instructions
 1. Install the virtual environment
@@ -21,3 +22,14 @@ My Build:
 
 4. Install ngstents
     `pip install ngstents`
+
+5. Run the script:
+    `py .\test.py` \\ `python3 .\test.py`
+    Or
+    `netgen .\test.py`
+
+
+## Useful Commands
+- `pip install --force-reinstall <package>` - Redownloads and reinstalls a package
+- `pip uninstall <package>` - Uninstall a package
+- `pip cache purge` - Clears the pip cache
