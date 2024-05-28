@@ -171,6 +171,15 @@ set_map_colors(dMapper)
 representation(zActor)
 set_map_colors(zMapper)
 
+# Create an orientation marker
+axes = v.vtkAxesActor()
+orientationMarker = v.vtkOrientationMarkerWidget()
+orientationMarker.SetOrientationMarker(axes)
+orientationMarker.SetInteractor(renderWindowInteractor)
+orientationMarker.SetViewport(0.0, 0.0, 0.2, 0.2)
+orientationMarker.SetEnabled(1)
+orientationMarker.InteractiveOn()
+
 renderer.ResetCamera()
 
 # -----------------------------------------------------------------------------
