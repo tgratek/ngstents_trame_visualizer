@@ -63,7 +63,7 @@ class LookupTable:
         vtkActor() - Adds the item to the renderer. 
 """
 # Create the renderer, render window, and interactor
-renderer = v.vtkRenderer()
+renderer = v.vtkOpenGLRenderer()
 renderWindow = v.vtkRenderWindow()
 renderWindow.AddRenderer(renderer)
 
@@ -75,9 +75,6 @@ renderWindowInteractor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
 reader = v.vtkUnstructuredGridReader()
 reader.SetFileName("file.vtk")
 reader.Update()
-
-# Get the output dataset - Used in zlayer ** To Do: Get from below dict array **
-dataset = reader.GetOutput()
 
 # Extract data arrays from 'reader'
 dataset_arrays = []
@@ -101,31 +98,12 @@ for field in fields:
 default_array = dataset_arrays[0]
 default_min, default_max = default_array.get("range")
 
-"""
-    Currently setting up two different maps and actors to be used for visualization.
-"""
-# Default - The normal layer that is mapped as before.
-dMapper = v.vtkDataSetMapper()
-dMapper.SetInputConnection(reader.GetOutputPort())
-dActor = v.vtkActor()
-dActor.SetMapper(dMapper)
-renderer.AddActor(dActor)
 
-# Z-Layer - Used for rendering the different "levels" of the file.
-zLayer = v.vtkmThreshold()
-zLayer.SetInputConnection(reader.GetOutputPort())
-zMapper = v.vtkDataSetMapper()
-zMapper.SetInputConnection(zLayer.GetOutputPort())
-zActor = v.vtkActor()
-zActor.SetMapper(zMapper)
-renderer.AddActor(zActor)
-
-ZValue = 0.5 * (default_max + default_min)
-zLayer.SetInputArrayToProcess(0, 0, 0, v.vtkDataObject.FIELD_ASSOCIATION_POINTS, 'tentlevel')
-zLayer.SetInputArrayToProcess(1, 0, 0, v.vtkDataObject.FIELD_ASSOCIATION_POINTS_THEN_CELLS,'tentnumber')
-zLayer.SetLowerThreshold(default_min)
-zLayer.SetUpperThreshold(default_max)
-zLayer.Update()
+mapper = v.vtkDataSetMapper()
+mapper.SetInputConnection(reader.GetOutputPort())
+actor = v.vtkActor()
+actor.SetMapper(mapper)
+renderer.AddActor(actor)
 
 
 def representation(actor):
@@ -165,20 +143,17 @@ def set_map_colors(mapper):
     mapper.SetScalarVisibility(True)
     mapper.SetUseLookupTableScalarRange(True)
 
-representation(dActor)
-set_map_colors(dMapper)
 
-representation(zActor)
-set_map_colors(zMapper)
+representation(actor)
+set_map_colors(mapper)
 
-# Create an orientation marker
+# Create axes actor
 axes = v.vtkAxesActor()
 orientationMarker = v.vtkOrientationMarkerWidget()
 orientationMarker.SetOrientationMarker(axes)
 orientationMarker.SetInteractor(renderWindowInteractor)
 orientationMarker.SetViewport(0.0, 0.0, 0.2, 0.2)
-orientationMarker.SetEnabled(1)
-orientationMarker.InteractiveOn()
+orientationMarker.EnabledOn()
 
 renderer.ResetCamera()
 
@@ -190,50 +165,10 @@ state, ctrl = server.state, server.controller
 
 # Sets defaults:
 state.setdefault("active_ui", "default")
-state.setdefault("zlayer_opacity", 0.0)
 
 # -----------------------------------------------------------------------------
 # Callbacks
 # -----------------------------------------------------------------------------
-# Selection Change
-def actives_change(ids):
-    """
-    Callback to handle changes in the active UI elements.
-
-    Args:
-        ids (list): List of active UI element IDs.
-    """
-    _id = ids[0]
-    if _id == "1":  # Mesh
-        state.active_ui = "default"
-        zActor.VisibilityOff()
-        dActor.VisibilityOn()
-    elif _id == "2":  # Z-Layer
-        state.active_ui = "zlayer"
-        zActor.VisibilityOn()
-        dActor.VisibilityOff()
-    else:
-        state.active_ui = "nothing"
-        dActor.VisibilityOff()
-        zActor.VisibilityOff()
-
-# Visibility Change
-def visibility_change(event):
-    """
-    Callback to handle changes in visibility of actors.
-
-    Args:
-        event (dict): Event data containing the ID and visibility state.
-    """
-    _id = event["id"]
-    _visibility = event["visible"]
-
-    if _id == "1":  # Default
-        dActor.SetVisibility(_visibility)
-    elif _id == "2":  # Z-Layer
-        zActor.SetVisibility(_visibility)
-    ctrl.view_update()
-
 # Representation Callbacks
 def update_representation(actor, mode):
     """
@@ -269,20 +204,8 @@ def update_mesh_representation(mesh_representation, **kwargs):
     Args:
         mesh_representation (int): The new representation mode.
     """
-    update_representation(dActor, mesh_representation)
+    update_representation(actor, mesh_representation)
     ctrl.view_update()
-
-@state.change("zlayer_representation")
-def update_zlayer_representation(zlayer_representation, **kwargs):
-    """
-    State change callback to update the representation mode of the Z-layer.
-
-    Args:
-        zlayer_representation (int): The new representation mode.
-    """
-    update_representation(zActor, zlayer_representation)
-    ctrl.view_update()
-
 
 # Color By Callbacks
 def color_by_array(actor, array):
@@ -298,9 +221,9 @@ def color_by_array(actor, array):
     mapper.SelectColorArray(array.get("text"))
     mapper.GetLookupTable().SetRange(_min, _max)
     if array.get("type") == v.vtkDataObject.FIELD_ASSOCIATION_POINTS:
-        dMapper.SetScalarModeToUsePointFieldData()
+        mapper.SetScalarModeToUsePointFieldData()
     else:
-        dMapper.SetScalarModeToUseCellFieldData()
+        mapper.SetScalarModeToUseCellFieldData()
     mapper.SetScalarVisibility(True)
     mapper.SetUseLookupTableScalarRange(True)
 
@@ -313,9 +236,8 @@ def update_mesh_color_by_name(mesh_color_array_idx, **kwargs):
         mesh_color_array_idx (int): The index of the data array to use for color mapping.
     """
     array = dataset_arrays[mesh_color_array_idx]
-    color_by_array(dActor, array)
+    color_by_array(actor, array)
     ctrl.view_update()
-
 
 # Color Map Callbacks
 def use_preset(actor, preset):
@@ -353,20 +275,8 @@ def update_mesh_color_preset(mesh_color_preset, **kwargs):
     Args:
         mesh_color_preset (int): The new color preset.
     """
-    use_preset(dActor, mesh_color_preset)
+    use_preset(actor, mesh_color_preset)
     ctrl.view_update()
-
-@state.change("zlayer_color_preset")
-def update_zlayer_color_preset(zlayer_color_preset, **kwargs):
-    """
-    State change callback to update the color preset of the Z-layer.
-
-    Args:
-        zlayer_color_preset (int): The new color preset.
-    """
-    use_preset(zActor, zlayer_color_preset)
-    ctrl.view_update()
-
 
 # Opacity Callbacks
 @state.change("mesh_opacity")
@@ -377,20 +287,8 @@ def update_mesh_opacity(mesh_opacity, **kwargs):
     Args:
         mesh_opacity (float): The new opacity value for the mesh actor.
     """
-    dActor.GetProperty().SetOpacity(mesh_opacity)
+    actor.GetProperty().SetOpacity(mesh_opacity)
     ctrl.view_update()
-
-@state.change("zlayer_opacity")
-def update_zlayer_opacity(zlayer_opacity, **kwargs):
-    """
-    Update the opacity of the Z-layer actor when the 'zlayer_opacity' state changes.
-
-    Args:
-        zlayer_opacity (float): The new opacity value for the Z-layer actor.
-    """
-    zActor.GetProperty().SetOpacity(zlayer_opacity)
-    ctrl.view_update()
-
 
 # ZLayer Callbacks
 def update_zlayer(z_value, actor, **kwargs):
@@ -404,32 +302,26 @@ def update_zlayer(z_value, actor, **kwargs):
     Returns:
         vtk.vtkActor, vtk.vtkDataSetMapper: The updated actor and mapper for the Z-layer.
     """
-    renderer.RemoveActor(actor)
     threshold_filter = v.vtkThreshold()
-    threshold_filter.SetInputData(dataset)
+    threshold_filter.SetInputData(reader.GetOutput())
     threshold_filter.SetInputArrayToProcess(0, 0, 0, v.vtkDataObject.FIELD_ASSOCIATION_POINTS, 'tentlevel')
     threshold_filter.SetInputArrayToProcess(1, 0, 0, v.vtkDataObject.FIELD_ASSOCIATION_CELLS, 'tentnumber')
     threshold_filter.UseContinuousCellRangeOn()
     threshold_filter.SetLowerThreshold(z_value)
     threshold_filter.SetUpperThreshold(default_max)
     threshold_filter.Update()
-
-    # Visualize the layer
-    zMapper = v.vtkDataSetMapper()
-    zMapper.SetInputData(threshold_filter.GetOutput())
-    zActor = v.vtkActor()
-    zActor.SetMapper(zMapper)
-    renderer.AddActor(zActor)
     
-    representation(zActor)
-    set_map_colors(zMapper)
+    mapper.SetInputConnection(threshold_filter.GetOutputPort())
+    actor.SetMapper(mapper)
     
+    set_map_colors(mapper)
+        
     # Update the view
     renderWindow.Render()
     ctrl.view_update()
     
     # Return new Actor & Map
-    return zActor, zMapper
+    return actor, mapper
 
 @state.change("z_value")
 def update_zlayer_helper(z_value, **kwargs):
@@ -439,8 +331,8 @@ def update_zlayer_helper(z_value, **kwargs):
     Args:
         z_value (float): The new Z value to set the lower threshold of the threshold filter.
     """
-    global zActor, zMapper # For change to affect - To Do: make a better solution (?)
-    zActor, zMapper = update_zlayer(z_value, zActor)
+    global actor, mapper # For change to affect - To Do: make a better solution (?)
+    actor, mapper = update_zlayer(z_value, actor)
 
 # -----------------------------------------------------------------------------
 # GUI elements
@@ -458,25 +350,8 @@ def standard_buttons():
         hide_details=True,
         dense=True,
     )
-    with vuetify.VBtn(icon=True, click="$refs.view.resetCamera()"):
+    with vuetify.VBtn(icon=True, click="$refs.view.reset_camera()"):
         vuetify.VIcon("mdi-crop-free")
-
-def pipeline_widget():
-    """
-    Define the pipeline widget for the GUI, including a tree view to manage the visibility of different components.
-    """
-    trame.GitTree(
-        sources=(
-            "pipeline",
-            [
-                {"id": "1", "parent": "0", "visible": 1, "name": "Default"},
-                {"id": "2", "parent": "1", "visible": 1, "name": "Z-Layer"},
-            ],
-        ),
-        
-        actives_change=(actives_change, "[$event]"),
-        visibility_change=(visibility_change, "[$event]"),
-    )
 
 def ui_card(title, ui_name):
     """
@@ -566,73 +441,17 @@ def d_card():
             dense=True,
             thumb_label=True,
         )
-
-def z_card():
-    """
-    Define the UI card for the Z-layer settings, including options for representation, color, opacity, and Z-layer value.
-    """
-    with ui_card(title="Z-Layer", ui_name="zlayer"):
-        vuetify.VSelect(
-            # Representation
-            v_model=("zlayer_representation", Representation.Surface),
-            items=(
-                "representations",
-                [
-                    {"text": "Points", "value": 0},
-                    {"text": "Wireframe", "value": 1},
-                    {"text": "Surface", "value": 2},
-                    {"text": "SurfaceWithEdges", "value": 3},
-                ],
-            ),
-            label="Representation",
-            hide_details=True,
-            dense=True,
-            outlined=True,
-            classes="pt-1",
-        )
-        with vuetify.VRow(classes="pt-2", dense=True):
-            with vuetify.VCol(cols="6"):
-                vuetify.VSelect(
-                    # Color Map
-                    label="Colormap",
-                    v_model=("zlayer_color_preset", LookupTable.Rainbow),
-                    items=(
-                        "colormaps",
-                        [
-                            {"text": "Rainbow", "value": 0},
-                            {"text": "Inv Rainbow", "value": 1},
-                            {"text": "Greyscale", "value": 2},
-                            {"text": "Inv Greyscale", "value": 3},
-                        ],
-                    ),
-                    hide_details=True,
-                    dense=True,
-                    outlined=True,
-                    classes="pt-1",
-                )
         vuetify.VSlider(
-            # Opacity
-            v_model=("zlayer_opacity", 0),
-            min=0,
-            max=1,
-            step=0.05,
-            label="Opacity",
-            classes="mt-1",
-            hide_details=True,
-            dense=True,
-        )
-        vuetify.VSlider(
-            # layers
-            v_model=("z_value", 0.0),
-            min=0,
-            max=30,
+            # Levels
+            v_model=("z_value", 0),
+            min=default_min,
+            max=default_max,
             step=1,
-            label="Z-Layer",
+            label="Level",
             classes="mt-1",
             hide_details=True,
             dense=True,
-            thumb_label=True,
-            reverse=True,
+            thumb_label=True
         )
 
 # -----------------------------------------------------------------------------
@@ -651,10 +470,8 @@ with SinglePageWithDrawerLayout(server) as layout:
     with layout.drawer as drawer:
         # drawer components
         drawer.width = 325
-        pipeline_widget()
         vuetify.VDivider(classes="mb-2")
         d_card()
-        z_card()
 
     with layout.content:
         # content components
@@ -662,13 +479,7 @@ with SinglePageWithDrawerLayout(server) as layout:
             fluid=True,
             classes="pa-0 fill-height",
         ):
-            # Some performance hits, but works
-            view = vtk.VtkRemoteView(renderWindow, interactive_ratio=1)
-            # Fast, but colors don't work/render within
-            # view = vtk.VtkLocalView(renderWindow)
-            # view = vtk.VtkRemoteLocalView(
-            #     renderWindow, namespace="view", mode="local", interactive_ratio=1
-            # )
+            view = vtk.VtkLocalView(renderWindow)
             ctrl.view_update = view.update
             ctrl.view_reset_camera = view.reset_camera
          
