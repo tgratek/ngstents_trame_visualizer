@@ -3,7 +3,7 @@ import vtk
 import numpy as np
 
 from trame.app import get_server
-from pyvista.trame.ui import plotter_ui
+from pyvista.trame.ui import plotter_ui, get_viewer
 from trame.ui.vuetify3 import SinglePageWithDrawerLayout
 from trame.widgets import vuetify3
 from pyvista.plotting.themes import DarkTheme
@@ -32,9 +32,10 @@ class VTKVisualizer:
         pv.global_theme.load_theme(self.setup_theme())
 
         # Public Data Members
-        self.server = get_server()
+        self.server = get_server(client_type="vue3")
         self.filename = filename
         self.plotter = pv.Plotter(notebook=True)
+        self.viewer = get_viewer(self.plotter) # PyVista Default UI Controls
 
         # Protected Data Members
         self._mesh = pv.read(self.filename)
@@ -106,7 +107,9 @@ class VTKVisualizer:
                 with layout.toolbar:
                     vuetify3.VSpacer()
                     vuetify3.VDivider(vertical=True)
-                    self.standard_buttons()
+                    
+                    # PyVista's Default UI Controls - parameters must match that of plotter_ui
+                    self.viewer.ui_controls(mode='trame', default_server_rendering=False)
 
                 # Side Drawer Components
                 with layout.drawer as drawer:
@@ -248,15 +251,11 @@ class VTKVisualizer:
     def standard_buttons(self):
         """
         Define standard buttons for the GUI, including a checkbox for dark mode and a button to reset the camera.
-        """
-        # Reset Camera
-        with vuetify3.VBtn(icon=True, click=self.ctrl.view_reset_camera):
-            vuetify3.VIcon("mdi-crop-free")
-        
+        """ 
         # Light and Dark Theme
         vuetify3.VCheckbox(
             # Posssibly because vuetify.theme is NOT A THING, the PyVista toolbar appears in place of no theme
-            v_model="vuetify.theme.dark", # ??? Causes the PyVista toolbar to appear but overrides Topbar ???
+            #v_model="vuetify.theme.dark",
             on_icon="mdi-lightbulb-off-outline",
             off_icon="mdi-lightbulb-outline",
             classes="mx-1",
