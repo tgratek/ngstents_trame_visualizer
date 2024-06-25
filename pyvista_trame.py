@@ -106,9 +106,11 @@ class VTKVisualizer:
                 # Top Toolbar Components
                 with layout.toolbar:
                     vuetify3.VSpacer()
-                    vuetify3.VDivider(vertical=True)
-                    
-                    # PyVista's Default UI Controls - parameters must match that of plotter_ui
+                    # TODO: Fix padding/spacing with standard UI controls
+                    #vuetify3.VDivider(vertical=True)
+                    #vuetify3.VSpacer()
+
+                    # PyVista's Standard UI Controls - parameters must match that of plotter_ui
                     self.viewer.ui_controls(mode='trame', default_server_rendering=False)
 
                 # Side Drawer Components
