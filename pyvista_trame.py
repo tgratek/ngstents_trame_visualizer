@@ -226,9 +226,20 @@ class VTKVisualizer:
         
         actor.prop = property
 
-    def update_zlayer(self, z_value, actor):
-        # TODO
-        pass
+    def update_zlayer(self, z_value):
+        """
+        Updates the Z-Layer of the default actor using a new mesh threshold.
+
+        Args:
+            z_value (int): The new threshold to be used by the plotter.
+            
+        Example: 
+            [z_value, self.default_max] - The range between the z_value and the self.default_max to be mapped to a mesh and assigned to the self.actor.
+        """
+        self.plotter.remove_actor(self.actor)
+        z_layer = self.mesh.threshold([z_value, self.default_max], scalars='tentlevel')
+        self.actor = self.plotter.add_mesh(z_layer, scalars=self.default_array.get("text"), cmap="rainbow", opacity=1)
+        self.plotter.render()
 
     def setup_callbacks(self):
         """
@@ -247,8 +258,14 @@ class VTKVisualizer:
 
         @self.state.change("z_value")
         def update_zvalue(z_value, **kwargs):
-            # TODO
-            pass
+            """
+            State change callback to update the 'Z-Layer' of the mesh.
+
+            Args:
+                z_value (int): The new layer to be drawn to.
+            """
+            self.update_zlayer(z_value)
+            self.ctrl.view_update()
 
     def standard_buttons(self):
         """
