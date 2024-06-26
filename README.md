@@ -1,4 +1,9 @@
-# Installing ngstents Libraries and Dependancies
+# NGSTents PyVista + Trame Visualizer
+## Notice when Running for the First Time
+Processing a `vtk` file for the first time may take a while (`file.vtk` took about 20-30 seconds) before the visualizer renders. 
+Once a supposed cache is generated, runtime is much faster on subsequent runs.
+
+## Installing ngstents Libraries and Dependancies
 Getting the installation of ngstents and being able to have everything run correctly is a bit tricky. This is my attempt in having something that can be
 recreated.
 
@@ -8,7 +13,7 @@ My Build:
 - Python3.12
 - pip v24
 
-## Instructions
+### Instructions
 1. Install the virtual environment
     `py -m venv env` - Windows
     `python3 -m venv env` - Linux
@@ -29,7 +34,7 @@ My Build:
     `netgen .\test.py`
 
 
-## Useful Commands
+### Useful Commands
 - `pip install --force-reinstall <package>` - Redownloads and reinstalls a package
 - `pip uninstall <package>` - Uninstall a package
 - `pip cache purge` - Clears the pip cache
