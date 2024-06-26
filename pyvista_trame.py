@@ -52,7 +52,7 @@ class VTKVisualizer:
         self.setup_callbacks()
 
         self.state.mesh_representation = Representation.Surface
-        self.update_representation(self._actor, self.state.mesh_representation)
+        self.update_representation(self.state.mesh_representation)
 
         # Build UI
         self.ui
@@ -200,7 +200,7 @@ class VTKVisualizer:
         # Reset the camera to show the full objec
         self.plotter.reset_camera()
 
-    def update_representation(self, actor, mode):
+    def update_representation(self, mode):
         """
         Update the representation mode of an actor.
 
@@ -208,7 +208,7 @@ class VTKVisualizer:
             actor (vtk.vtkActor): The VTK actor to update.
             mode (int): The representation mode (Points, Wireframe, Surface).
         """
-        property = actor.prop
+        property = self.actor.prop
         
         if mode == Representation.Points:
             property.style = 'points'
@@ -220,7 +220,7 @@ class VTKVisualizer:
             property.style = 'surface'
             property.point_size = 1
         
-        actor.prop = property
+        self.actor.prop = property
 
     def update_zlayer(self, z_value):
         """
@@ -249,7 +249,7 @@ class VTKVisualizer:
             Args:
                 mesh_representation (int): The new representation mode.
             """
-            self.update_representation(self.actor, mesh_representation)
+            self.update_representation(mesh_representation)
             self.ctrl.view_update()
 
         @self.state.change("z_value")
