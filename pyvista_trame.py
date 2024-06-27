@@ -197,6 +197,16 @@ class VTKVisualizer:
             cmap="rainbow",
         )
 
+        # Customize XYZ Axes Widget
+        self.plotter.add_axes(
+            line_width=5,
+            cone_radius=0.6,
+            shaft_length=0.7,
+            tip_length=0.3,
+            ambient=0.5,
+            label_size=(0.4, 0.16),
+        )
+
         # Reset the camera to show the full objec
         self.plotter.reset_camera()
 
