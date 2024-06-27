@@ -15,7 +15,6 @@ class Representation:
     Points = 0
     Wireframe = 1
     Surface = 2
-    SurfaceWithEdges = 3
 
 class LookupTable:
     Rainbow = 0
@@ -35,7 +34,7 @@ class VTKVisualizer:
         self.server = get_server(client_type="vue3")
         self.filename = filename
         self.plotter = pv.Plotter(notebook=True)
-        self.viewer = get_viewer(self.plotter) # PyVista Default UI Controls
+        self.viewer = get_viewer(self.plotter, server=self.server)
 
         # Protected Data Members
         self._mesh = pv.read(self.filename)
@@ -52,8 +51,8 @@ class VTKVisualizer:
         self.setup_actor()
         self.setup_callbacks()
 
-        self.state.mesh_representation = Representation.SurfaceWithEdges
-        self.update_representation(self._actor, self.state.mesh_representation)
+        self.state.mesh_representation = Representation.Surface
+        self.update_representation(self.state.mesh_representation)
 
         # Build UI
         self.ui
@@ -103,15 +102,20 @@ class VTKVisualizer:
         if self._ui is None:
             with SinglePageWithDrawerLayout(self.server) as layout:
                 layout.title.set_text("Spacetime Tents Visualization")
-                # Top Toolbar Components
-                with layout.toolbar:
-                    vuetify3.VSpacer()
-                    # TODO: Fix padding/spacing with standard UI controls
-                    #vuetify3.VDivider(vertical=True)
-                    #vuetify3.VSpacer()
 
-                    # PyVista's Standard UI Controls - parameters must match that of plotter_ui
-                    self.viewer.ui_controls(mode='trame', default_server_rendering=False)
+                # Top Toolbar Components
+                with layout.toolbar:                
+                    with vuetify3.VContainer(fluid=True, classes="d-flex fill-height"):
+                        # Visible Title as container overlays
+                        vuetify3.VAppBarTitle(
+                            "Spacetime Tents Visualization", 
+                            classes="ml-n5 text-button font-weight-black",
+                        )
+
+                        # Right aligns the containing elements
+                        with vuetify3.VToolbarItems():
+                            # PyVista's Standard UI Controls - parameters must match that of plotter_ui
+                            self.viewer.ui_controls(mode='trame', default_server_rendering=False)
 
                 # Side Drawer Components
                 with layout.drawer as drawer:
@@ -137,7 +141,6 @@ class VTKVisualizer:
         Sets the default theme for the PyVista Plotter.
         """
         theme = DarkTheme()
-        theme.show_edges = True
         theme.edge_color = "black"
         theme.split_sharp_edges = True
         
@@ -148,9 +151,17 @@ class VTKVisualizer:
         Sets the default parameters for the PyVista Plotter.
         """
         self.plotter.view_xy()
-        self.plotter.add_axes()
         self.plotter.show_grid()
-        
+
+        # Customize XYZ Axes Widget
+        self.plotter.add_axes(
+            line_width=5,
+            cone_radius=0.6,
+            shaft_length=0.7,
+            tip_length=0.3,
+            ambient=0.5,
+            label_size=(0.4, 0.16),
+        )
 
     def extract_data_arrays(self):
         """
@@ -194,37 +205,29 @@ class VTKVisualizer:
             cmap="rainbow",
         )
 
-        # Reset the camera to show the full objec
         self.plotter.reset_camera()
 
-    def update_representation(self, actor, mode):
+    def update_representation(self, mode):
         """
         Update the representation mode of an actor.
 
         Args:
             actor (vtk.vtkActor): The VTK actor to update.
-            mode (int): The representation mode (Points, Wireframe, Surface, SurfaceWithEdges).
+            mode (int): The representation mode (Points, Wireframe, Surface).
         """
-        property = actor.prop
+        property = self.actor.prop
         
         if mode == Representation.Points:
             property.style = 'points'
             property.point_size = 5
-            property.show_edges = False
         elif mode == Representation.Wireframe:
             property.style = 'wireframe'
             property.point_size = 1
-            property.show_edges = False
         elif mode == Representation.Surface:
             property.style = 'surface'
             property.point_size = 1
-            property.show_edges = False
-        elif mode == Representation.SurfaceWithEdges:
-            property.style = 'surface'
-            property.point_size = 1
-            property.show_edges = True
         
-        actor.prop = property
+        self.actor.prop = property
 
     def update_zlayer(self, z_value):
         """
@@ -253,7 +256,7 @@ class VTKVisualizer:
             Args:
                 mesh_representation (int): The new representation mode.
             """
-            self.update_representation(self.actor, mesh_representation)
+            self.update_representation(mesh_representation)
             self.ctrl.view_update()
 
         @self.state.change("z_value")
@@ -295,8 +298,8 @@ class VTKVisualizer:
         with vuetify3.VCard():
             vuetify3.VCardTitle(
                 title,
-                classes="grey lighten-1 py-1 grey--text text--darken-3",
-                style="user-select: none; cursor: pointer",
+                classes="py-1 text-button font-weight-bold text-teal-darken-1",
+                style="user-select: none;",
                 hide_details=True,
                 dense=True,
             )
@@ -305,7 +308,7 @@ class VTKVisualizer:
 
     def representation_dropdown(self):
         """
-        The dropdown UI for selecting different representations, e.g. including edges, wireframe, points, etc.
+        The dropdown UI for selecting different representations, e.g. surface, wireframe, points, etc.
         """
         vuetify3.VSelect(
             v_model=("mesh_representation", self.state.mesh_representation),
@@ -315,7 +318,6 @@ class VTKVisualizer:
                     {"title": "Points", "value": Representation.Points},
                     {"title": "Wireframe", "value": Representation.Wireframe},
                     {"title": "Surface", "value": Representation.Surface},
-                    {"title": "SurfaceWithEdges", "value": Representation.SurfaceWithEdges},
                 ],
             ),
             label="Representation",
