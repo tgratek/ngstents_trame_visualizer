@@ -6,7 +6,7 @@ from trame.app import get_server
 from pyvista.trame.ui import plotter_ui, get_viewer
 from trame.ui.vuetify3 import SinglePageWithDrawerLayout
 from trame.widgets import vuetify3
-from pyvista.plotting.themes import DarkTheme
+from pyvista.plotting.themes import DocumentTheme
 
 # -----------------------------------------------------------------------------
 # Constants
@@ -45,6 +45,9 @@ class VTKVisualizer:
         self._default_max = None
         self._ui = None
 
+        # Necessary to extend the on methods of PyVista's ui_controls
+        self._plotter_id = self.plotter._id_name
+
         # Process Mesh and Setup UI
         self.setup_plotter()
         self.extract_data_arrays()
@@ -53,6 +56,8 @@ class VTKVisualizer:
 
         self.state.mesh_representation = Representation.Surface
         self.update_representation(self.state.mesh_representation)
+        # Theme of the Vuetify Interface
+        self.state.theme = "light"
 
         # Build UI
         self.ui
@@ -96,12 +101,19 @@ class VTKVisualizer:
     @default_max.setter
     def default_max(self, value):
         self._default_max = value
+    
+    @property
+    def plotter_id(self):
+        return self._plotter_id
 
     @property
     def ui(self):
         if self._ui is None:
             with SinglePageWithDrawerLayout(self.server) as layout:
                 layout.title.set_text("Spacetime Tents Visualization")
+
+                # Theme of Vuetify Page (Not the Plotter)
+                layout.root.theme = ("theme",)
 
                 # Top Toolbar Components
                 with layout.toolbar:                
@@ -114,6 +126,7 @@ class VTKVisualizer:
 
                         # Right aligns the containing elements
                         with vuetify3.VToolbarItems():
+                            self.light_dark_toggle()
                             # PyVista's Standard UI Controls - parameters must match that of plotter_ui
                             self.viewer.ui_controls(mode='trame', default_server_rendering=False)
 
@@ -140,18 +153,19 @@ class VTKVisualizer:
         """
         Sets the default theme for the PyVista Plotter.
         """
-        theme = DarkTheme()
+        theme = DocumentTheme()
         theme.edge_color = "black"
         theme.split_sharp_edges = True
-        
+        theme.full_screen = True
+
         return theme
 
     def setup_plotter(self):
         """
         Sets the default parameters for the PyVista Plotter.
         """
-        self.plotter.view_xy()
-        self.plotter.show_grid()
+        self.plotter.view_xy() # Birds-Eye View
+        self.plotter.show_grid() # Show Ruler
 
         # Customize XYZ Axes Widget
         self.plotter.add_axes(
@@ -243,11 +257,31 @@ class VTKVisualizer:
         z_layer = self.mesh.threshold([z_value, self.default_max], scalars='tentlevel')
         self.actor = self.plotter.add_mesh(z_layer, scalars=self.default_array.get("text"), cmap="rainbow", opacity=1)
         self.plotter.render()
+    
+    def update_light_dark(self, grid_id):
+        if (self.state.theme == "light"):
+            self.plotter.set_background("snow")
+            self.plotter.theme.font.color = "black"
+
+        elif (self.state.theme == "dark"):
+            self.plotter.set_background("black")
+            self.plotter.theme.font.color = "white"
+
+        # If "Toggle ruler" is ON, remove and replace with correct colors
+        if (self.state[grid_id]):
+            # Mimicking PyVista's on_grid_visibility_change
+            # https://github.com/pyvista/pyvista/blob/main/pyvista/trame/ui/base_viewer.py#L183
+            self.plotter.remove_bounds_axes()
+            self.plotter.show_grid() # Should use the color from font.color 
+
+        self.plotter.render()
 
     def setup_callbacks(self):
         """
         Sets up all event listener callbacks for when state changes trigger.
         """
+        grid_id = f'{self.plotter_id}_grid_visibility'
+
         @self.state.change("mesh_representation")
         def update_mesh_representation(mesh_representation, **kwargs):
             """
@@ -269,20 +303,25 @@ class VTKVisualizer:
             """
             self.update_zlayer(z_value)
             self.ctrl.view_update()
+        
+        @self.state.change("theme")
+        def update_theme(**kwargs):
+            self.update_light_dark(grid_id)
+            self.ctrl.view_update()
 
-    def standard_buttons(self):
+    def light_dark_toggle(self):
         """
-        Define standard buttons for the GUI, including a checkbox for dark mode and a button to reset the camera.
+        Define Light/Dark checkbox toggle for the GUI to switch theme of Vuetify page and plotter theme.
         """ 
-        # Light and Dark Theme
-        vuetify3.VCheckbox(
-            # Posssibly because vuetify.theme is NOT A THING, the PyVista toolbar appears in place of no theme
-            #v_model="vuetify.theme.dark",
-            on_icon="mdi-lightbulb-off-outline",
-            off_icon="mdi-lightbulb-outline",
-            classes="mx-1",
-            hide_details=True,
-            dense=True,
+        vuetify3.VCheckboxBtn(
+            v_model="theme",
+            density="compact",
+            false_icon="mdi-weather-sunny",
+            false_value="light",
+            true_icon="mdi-weather-night",
+            true_value="dark",
+            classes="pa-0 ma-0 mr-2",
+            style="max-width: 30px",
         )
 
     def drawer_card(self, title):
