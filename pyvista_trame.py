@@ -185,6 +185,7 @@ class VTKVisualizer:
             ambient=0.5,
             label_size=(0.4, 0.16),
         )
+        self.plotter.se
 
     def extract_data_arrays(self):
         """
@@ -228,14 +229,14 @@ class VTKVisualizer:
         self.actor = self.plotter.add_mesh(
             slice,
             scalars="tentlevel",
-            cmap="rainbow",
+            cmap="Accent",
         )
         self.zActor = self.plotter.add_mesh(
             self.mesh.flip_z(None),
-            scalars='tentlevel',
+            scalars="tentlevel",
             cmap="rainbow",
         )
-
+        
         self.plotter.reset_camera()
 
     def update_representation(self, mode):
