@@ -5,8 +5,8 @@ import numpy as np
 from trame.app import get_server
 from pyvista.trame.ui import plotter_ui, get_viewer
 from trame.ui.vuetify3 import SinglePageWithDrawerLayout
-from trame.widgets import vuetify3
-from pyvista.plotting.themes import DarkTheme
+from trame.widgets import html, vuetify3
+from pyvista.plotting.themes import DocumentTheme
 
 # -----------------------------------------------------------------------------
 # Constants
@@ -44,6 +44,9 @@ class VTKVisualizer:
         self._default_min = None
         self._default_max = None
         self._ui = None
+
+        # Theme of the Vuetify Interface
+        self.state.theme = "light"
 
         # Process Mesh and Setup UI
         self.setup_plotter()
@@ -103,6 +106,11 @@ class VTKVisualizer:
             with SinglePageWithDrawerLayout(self.server) as layout:
                 layout.title.set_text("Spacetime Tents Visualization")
 
+                # Theme of Vuetify Page (Not the Plotter)
+                # Works as a callback that inverts colors of Vuetify components
+                # when an action with v_model="theme" occurs.
+                layout.root.theme = ("theme",)
+
                 # Top Toolbar Components
                 with layout.toolbar:                
                     with vuetify3.VContainer(fluid=True, classes="d-flex fill-height"):
@@ -114,6 +122,7 @@ class VTKVisualizer:
 
                         # Right aligns the containing elements
                         with vuetify3.VToolbarItems():
+                            self.light_dark_toggle()
                             # PyVista's Standard UI Controls - parameters must match that of plotter_ui
                             self.viewer.ui_controls(mode='trame', default_server_rendering=False)
 
@@ -140,9 +149,10 @@ class VTKVisualizer:
         """
         Sets the default theme for the PyVista Plotter.
         """
-        theme = DarkTheme()
+        theme = DocumentTheme()
         theme.edge_color = "black"
         theme.split_sharp_edges = True
+        theme.full_screen = True
         
         return theme
 
@@ -150,8 +160,12 @@ class VTKVisualizer:
         """
         Sets the default parameters for the PyVista Plotter.
         """
-        self.plotter.view_xy()
-        self.plotter.show_grid()
+        self.plotter.view_xy() # Birds-Eye View
+        self.plotter.show_grid() # Show Ruler
+
+        # Default to Light Mode
+        self.plotter.set_background("snow")
+        self.plotter.theme.font.color = "black"
 
         # Customize XYZ Axes Widget
         self.plotter.add_axes(
@@ -270,20 +284,28 @@ class VTKVisualizer:
             self.update_zlayer(z_value)
             self.ctrl.view_update()
 
-    def standard_buttons(self):
+    def light_dark_toggle(self):
         """
-        Define standard buttons for the GUI, including a checkbox for dark mode and a button to reset the camera.
-        """ 
-        # Light and Dark Theme
-        vuetify3.VCheckbox(
-            # Posssibly because vuetify.theme is NOT A THING, the PyVista toolbar appears in place of no theme
-            #v_model="vuetify.theme.dark",
-            on_icon="mdi-lightbulb-off-outline",
-            off_icon="mdi-lightbulb-outline",
-            classes="mx-1",
-            hide_details=True,
-            dense=True,
-        )
+        Define Light / Dark checkbox toggle for the GUI to switch the theme of the Vuetify page,
+        inverting the colors of Vuetify components contained in the toolbar and drawer.
+        """
+        with vuetify3.VTooltip(location='bottom'):
+            with vuetify3.Template(v_slot_activator='{ props }'):
+                with html.Div(v_bind='props'):
+                    vuetify3.VCheckboxBtn(
+                        v_model="theme",
+                        density="compact",
+                        false_icon="mdi-weather-sunny",
+                        false_value="light",
+                        true_icon="mdi-weather-night",
+                        true_value="dark",
+                        classes="pa-0 ma-0 mr-2",
+                        style="max-width: 30px",
+                    )
+
+            # Current theme of layout page contained in HTML element
+            tooltip = "Toggle Page Theme ({{ theme === 'light' ? 'Light' : 'Dark' }})"
+            html.Span(tooltip)
 
     def drawer_card(self, title):
         """

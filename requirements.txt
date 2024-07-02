@@ -29,8 +29,8 @@ more-itertools==10.2.0
 msgpack==1.0.8
 multidict==6.0.5
 nest-asyncio==1.6.0
-netgen-mesher==6.2.2403
-ngsolve==6.2.2403
+netgen-mesher==6.2.2404.post3.dev0
+ngsolve==6.2.2404.post16
 ngstents==0.0.2.dev40
 numpy==1.26.4
 packaging==24.0
