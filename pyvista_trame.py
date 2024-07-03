@@ -40,6 +40,7 @@ class VTKVisualizer:
         self._mesh = pv.read(self.filename)
         self._dataset_arrays = []
         self._actor = None
+        self._zActor = None
         self._default_array = None
         self._default_min = None
         self._default_max = None
@@ -79,6 +80,14 @@ class VTKVisualizer:
     @actor.setter
     def actor(self, value):
         self._actor = value
+        
+    @property
+    def zActor(self):
+        return self._zActor
+
+    @zActor.setter
+    def zActor(self, value):
+        self._zActor = value
     
     @property
     def dataset_arrays(self):
@@ -213,12 +222,20 @@ class VTKVisualizer:
         """
         Initialize the actor of the mesh to visualize with default parameters.
         """
+        slice_mesh = self.mesh
+        slice_mesh.set_active_scalars('tentlevel')
+        slice = slice_mesh.slice_along_axis(n=1, axis='z')
         self.actor = self.plotter.add_mesh(
-            self.mesh,
-            scalars=self.default_array.get("text"),
+            slice,
+            scalars="tentlevel",
+            cmap="Accent",
+        )
+        self.zActor = self.plotter.add_mesh(
+            self.mesh.flip_z(None),
+            scalars="tentlevel",
             cmap="rainbow",
         )
-
+        
         self.plotter.reset_camera()
 
     def update_representation(self, mode):
@@ -229,7 +246,7 @@ class VTKVisualizer:
             actor (vtk.vtkActor): The VTK actor to update.
             mode (int): The representation mode (Points, Wireframe, Surface).
         """
-        property = self.actor.prop
+        property = self.zActor.prop
         
         if mode == Representation.Points:
             property.style = 'points'
@@ -241,7 +258,7 @@ class VTKVisualizer:
             property.style = 'surface'
             property.point_size = 1
         
-        self.actor.prop = property
+        self.zActor.prop = property
 
     def update_zlayer(self, z_value):
         """
@@ -253,9 +270,10 @@ class VTKVisualizer:
         Example: 
             [z_value, self.default_max] - The range between the z_value and the self.default_max to be mapped to a mesh and assigned to the self.actor.
         """
-        self.plotter.remove_actor(self.actor)
-        z_layer = self.mesh.threshold([z_value, self.default_max], scalars='tentlevel')
-        self.actor = self.plotter.add_mesh(z_layer, scalars=self.default_array.get("text"), cmap="rainbow", opacity=1)
+        self.plotter.remove_actor(self.zActor)
+        z_layer = self.mesh.threshold([self.default_min, z_value], scalars='tentlevel')
+        self.zActor = self.plotter.add_mesh(z_layer, scalars='tentlevel', cmap="rainbow", opacity=1)
+        self.update_representation(self.state.mesh_representation)
         self.plotter.render()
 
     def setup_callbacks(self):
