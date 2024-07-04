@@ -66,7 +66,7 @@ renderWindowInteractor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
 # Read Data
 # reader = vtkXMLUnstructuredGridReader()
 reader = vtkUnstructuredGridReader() # since it is not an xml
-reader.SetFileName(os.path.join(CURRENT_DIRECTORY, "./file.vtk"))
+reader.SetFileName(os.path.join(CURRENT_DIRECTORY, "../test-files/file.vtk"))
 reader.Update()
 
 # Extract Array/Field information
