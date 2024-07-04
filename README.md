@@ -1,40 +1,59 @@
 # NGSTents PyVista + Trame Visualizer
-## Notice when Running for the First Time
-Processing a `vtk` file for the first time may take a while (`file.vtk` took about 20-30 seconds) before the visualizer renders. 
+
+A prototype application meant for better visualizing meshes generated from [NGS-Tents](https://github.com/jayggg/ngstents) through
+utilizing the libraries [PyVista](https://github.com/pyvista/pyvista) and [Trame](https://github.com/Kitware/trame).
+This application takes a valid VTK file generated from NGS-Tents, plots the mesh using PyVista's 3D visualization capabilities, and
+encases the viewer around a single-page layout operated by the Vuetify framework made available from Trame.
+
+## Usage
+
+After pulling down the repository and installing the necessary libraries, this visualizer supports two methods of usage.
+Instantiate a variable of the `VTKVisualizer` class and either call its UI in a notebook or start a server:
+
+**Local Jupyter Notebook**
+
+```python
+# vtkVisualizer.ipynb
+from pyvista_trame import VTKVisualizer
+
+visualizer = VTKVisualizer(filename="test-files/file.vtk")
+await visualizer.ui.ready
+visualizer.ui
+```
+
+**Local Server Rendering**
+
+```python
+# vtkVisualizer.py
+from pyvista_trame import VTKVisualizer
+
+visualizer = VTKVisualizer(filename="test-files/file.vtk")
+visualizer.server.start()
+```
+
+This application is mainly intended for conference or presentation settings, leading to an emphasis on local environment usage.
+Fully remote environment usage is not tested and likely not supported.
+
+### Notice when Running for the First Time
+
+Processing a `vtk` file for the first time may take a while (`file.vtk` took about 20-30 seconds) before the visualizer renders.
 Once a supposed cache is generated, runtime is much faster on subsequent runs.
 
-## Installing ngstents Libraries and Dependancies
-Getting the installation of ngstents and being able to have everything run correctly is a bit tricky. This is my attempt in having something that can be
-recreated.
+## Known Issues
 
-My Build:
-- Windows 11
-- VSCode - (Some extensions: Pylance, Python, Python Debugger, Python Environment Manager, Python Extension Pack, Python Indent, Jupyter)
-- Python3.12
-- pip v24
+### Dragging the tents level slider while on local view frequently flashes the remote view.
 
-### Instructions
-1. Install the virtual environment
-    `py -m venv env` - Windows
-    `python3 -m venv env` - Linux
+When the rendering mode is local, dragging the tents level slider to render different layers of tents
+may sporadically show the VTK viewer from remote mode whilst dragging. Remote view remains unaffected
+and is more consistent in rendering appearence. This issue is potentially a result of de-syncing issues
+caused between PyVista's visualization and VTK local rendering, hence why PyVista likely falls back to
+the more stable remote view in these flashes.
 
-2. Activate the venv:
-    `.\env\Scripts\activate` - Windows
-    `source env\bin\activate` - Linux
+### "Toggle ruler" occasionally hides all objects on local rendering mode
 
-3. Remove pip cache - may help
-    `pip cache purge`
+When the rendering mode is local, toggling the ruler may cause the scene to de-render all objects. This is likely
+due to the de-syncing issue of local viewing mentioned prior, further emphasized by a PyVista issue expressing
+this same problem: https://github.com/pyvista/pyvista/issues/5736
 
-4. Install ngstents
-    `pip install ngstents`
-
-5. Run the script:
-    `py .\test.py` \\ `python3 .\test.py`
-    Or
-    `netgen .\test.py`
-
-
-### Useful Commands
-- `pip install --force-reinstall <package>` - Redownloads and reinstalls a package
-- `pip uninstall <package>` - Uninstall a package
-- `pip cache purge` - Clears the pip cache
+_Workaround_: Toggle the ruler multiple times until the scene restores itself, or simply rerun the cell / refresh
+the localhost window.
