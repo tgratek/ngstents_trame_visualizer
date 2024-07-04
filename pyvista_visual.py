@@ -16,7 +16,7 @@ my_theme.enable_camera_orientation_widget = True # Creates the camera bars in TO
 pv.global_theme.load_theme(my_theme)
 
 # Read the VTK file using PyVista
-filename = "file.vtk"
+filename = "test-files/file.vtk"
 mesh = pv.read(filename)
 
 # Extract data arrays

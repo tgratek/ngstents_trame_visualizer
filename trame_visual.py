@@ -73,7 +73,7 @@ renderWindowInteractor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
 
 # Read the VTK file
 reader = v.vtkUnstructuredGridReader()
-reader.SetFileName("file.vtk")
+reader.SetFileName("test-files/file.vtk")
 reader.Update()
 
 # Extract data arrays from 'reader'
