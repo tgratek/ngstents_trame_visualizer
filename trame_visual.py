@@ -16,6 +16,13 @@ from trame.ui.vuetify import SinglePageWithDrawerLayout
 from trame.widgets import vtk, vuetify, trame
 from trame_vtk.modules.vtk.serializers import configure_serializer
 
+# Required for interactor initialization
+from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa
+
+# Required for rendering initialization, not necessary for
+# local rendering, but doesn't hurt to include it
+import vtkmodules.vtkRenderingOpenGL2  # noqa
+
 configure_serializer(encode_lut=True, skip_light=True)
 # -----------------------------------------------------------------------------
 # Constants
@@ -147,13 +154,24 @@ def set_map_colors(mapper):
 representation(actor)
 set_map_colors(mapper)
 
-# Create axes actor
-axes = v.vtkAxesActor()
+# Create camera-axis actor
+axis = v.vtkAxesActor()
 orientationMarker = v.vtkOrientationMarkerWidget()
-orientationMarker.SetOrientationMarker(axes)
+orientationMarker.SetOrientationMarker(axis)
 orientationMarker.SetInteractor(renderWindowInteractor)
 orientationMarker.SetViewport(0.0, 0.0, 0.2, 0.2)
 orientationMarker.EnabledOn()
+
+axes = v.vtkCubeAxesActor()
+renderer.AddActor(axes)
+
+# Cube Axes: Boundaries, camera, and styling
+axes.SetBounds(actor.GetBounds())
+axes.SetCamera(renderer.GetActiveCamera())
+axes.SetXLabelFormat("%6.1f")
+axes.SetYLabelFormat("%6.1f")
+axes.SetZLabelFormat("%6.1f")
+axes.SetFlyModeToOuterEdges()
 
 renderer.ResetCamera()
 
@@ -164,7 +182,7 @@ server = get_server(client_type="vue2")
 state, ctrl = server.state, server.controller
 
 # Sets defaults:
-state.setdefault("active_ui", "default")
+state.setdefault("active_ui", "options")
 
 # -----------------------------------------------------------------------------
 # Callbacks
@@ -334,6 +352,11 @@ def update_zlayer_helper(z_value, **kwargs):
     global actor, mapper # For change to affect - To Do: make a better solution (?)
     actor, mapper = update_zlayer(z_value, actor)
 
+@state.change("cube_axes_visibility")
+def update_cube_axes_visibility(cube_axes_visibility, **kwargs):
+    axes.SetVisibility(cube_axes_visibility)
+    ctrl.view_update()
+
 # -----------------------------------------------------------------------------
 # GUI elements
 # -----------------------------------------------------------------------------
@@ -343,6 +366,14 @@ def standard_buttons():
     Define standard buttons for the GUI, including a checkbox for dark mode and a button to reset the camera.
     """
     vuetify.VCheckbox(
+        v_model=("cube_axes_visibility", True),
+        on_icon="mdi-cube-outline",
+        off_icon="mdi-cube-off-outline",
+        classes="mx-1",
+        hide_details=True,
+        dense=True,
+    )
+    vuetify.VCheckbox(
         v_model="$vuetify.theme.dark",
         on_icon="mdi-lightbulb-off-outline",
         off_icon="mdi-lightbulb-outline",
@@ -350,7 +381,17 @@ def standard_buttons():
         hide_details=True,
         dense=True,
     )
-    with vuetify.VBtn(icon=True, click="$refs.view.reset_camera()"):
+    vuetify.VCheckbox(
+        v_model=("viewMode", "local"),
+        on_icon="mdi-lan-disconnect",
+        off_icon="mdi-lan-connect",
+        true_value="local",
+        false_value="remote",
+        classes="mx-1",
+        hide_details=True,
+        dense=True,
+    )
+    with vuetify.VBtn(icon=True, click=ctrl.view_reset_camera):
         vuetify.VIcon("mdi-crop-free")
 
 def ui_card(title, ui_name):
@@ -379,7 +420,7 @@ def d_card():
     """
     Define the UI card for the default mesh settings, including options for representation, color, and opacity.
     """
-    with ui_card(title="Default", ui_name="default"):
+    with ui_card(title="Options", ui_name="options"):
         vuetify.VSelect(
             # Representation
             v_model=("mesh_representation", Representation.SurfaceWithEdges),
@@ -459,7 +500,7 @@ def d_card():
 # -----------------------------------------------------------------------------
 
 with SinglePageWithDrawerLayout(server) as layout:
-    layout.title.set_text("Viewer")
+    layout.title.set_text("Spacetime Tents Visualization")
 
     with layout.toolbar:
         # toolbar components
@@ -479,7 +520,10 @@ with SinglePageWithDrawerLayout(server) as layout:
             fluid=True,
             classes="pa-0 fill-height",
         ):
-            view = vtk.VtkLocalView(renderWindow)
+            view = vtk.VtkRemoteLocalView(
+                renderWindow, namespace="view", mode="local", 
+                interactive_ratio=1, interactive_quality=100
+            )
             ctrl.view_update = view.update
             ctrl.view_reset_camera = view.reset_camera
          
