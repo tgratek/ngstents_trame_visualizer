@@ -7,6 +7,7 @@ from pyvista.trame.ui import plotter_ui, get_viewer
 from trame.ui.vuetify3 import SinglePageWithDrawerLayout
 from trame.widgets import html, vuetify3
 from pyvista.plotting.themes import DocumentTheme
+from trame_vtklocal.widgets import vtklocal
 
 # -----------------------------------------------------------------------------
 # Constants
@@ -147,7 +148,11 @@ class VTKVisualizer:
                 
                 with layout.content:
                     with vuetify3.VContainer(fluid=True, classes="pa-0 fill-height"):
-                        view = plotter_ui(self.plotter, mode='trame', default_server_rendering=False)
+                        view = plotter_ui(self.plotter, mode='trame', default_server_rendering=False, collapse_menu=True)
+                        # view = vtklocal.LocalView(
+                        #     self.plotter.render_window,
+                        #     eager_sync=True,
+                        # )
                         self.ctrl.view_update = view.update
                         self.ctrl.view_reset_camera = view.reset_camera
 
