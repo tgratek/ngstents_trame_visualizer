@@ -46,7 +46,7 @@ pure-eval==0.2.2
 Pygments==2.18.0
 pyparsing==3.1.2
 python-dateutil==2.9.0.post0
-pyvista==0.43.8
+pyvista==0.44.0
 pyzmq==26.0.3
 requests==2.32.3
 scooby==0.10.0
@@ -62,7 +62,7 @@ trame-server==3.0.0
 trame-vtk==2.8.8
 trame-vuetify==2.5.0
 urllib3==2.2.2
-vtk==9.3.0
+vtk==9.3.1
 wcwidth==0.2.13
 webgui_jupyter_widgets==0.2.31
 widgetsnbextension==4.0.10
