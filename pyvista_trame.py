@@ -12,9 +12,9 @@ from pyvista.plotting.themes import DocumentTheme
 # Constants
 # -----------------------------------------------------------------------------
 class Representation:
-    Points = 0
-    Wireframe = 1
-    Surface = 2
+    Points = "points"
+    Wireframe = "wireframe"
+    Surface = "surface"
 
 class LookupTable:
     Rainbow = 0
@@ -45,6 +45,9 @@ class VTKVisualizer:
         self._default_min = None
         self._default_max = None
         self._ui = None
+        # Needed for extracting state values provided by PyVista's ui_controls
+        # https://github.com/pyvista/pyvista/blob/main/pyvista/trame/ui/base_viewer.py#L45
+        self._plotter_id = self.plotter._id_name
 
         # Theme of the Vuetify Interface
         self.state.theme = "light"
@@ -55,8 +58,9 @@ class VTKVisualizer:
         self.setup_actor()
         self.setup_callbacks()
 
+        # State defaults (triggers callback functions)
         self.state.mesh_representation = Representation.Surface
-        self.update_representation(self.state.mesh_representation)
+        self.state.z_value = 0
 
         # Build UI
         self.ui
@@ -110,6 +114,10 @@ class VTKVisualizer:
         self._default_max = value
 
     @property
+    def plotter_id(self):
+        return self._plotter_id
+    
+    @property
     def ui(self):
         if self._ui is None:
             with SinglePageWithDrawerLayout(self.server) as layout:
@@ -133,7 +141,7 @@ class VTKVisualizer:
                         with vuetify3.VToolbarItems():
                             self.light_dark_toggle()
                             # PyVista's Standard UI Controls - parameters must match that of plotter_ui
-                            self.viewer.ui_controls(mode='trame', default_server_rendering=False)
+                            self.viewer.ui_controls(mode='trame', default_server_rendering=True)
 
                 # Side Drawer Components
                 with layout.drawer as drawer:
@@ -147,7 +155,7 @@ class VTKVisualizer:
                 
                 with layout.content:
                     with vuetify3.VContainer(fluid=True, classes="pa-0 fill-height"):
-                        view = plotter_ui(self.plotter, mode='trame', default_server_rendering=False)
+                        view = plotter_ui(self.plotter, mode='trame', default_server_rendering=True, add_menu=False)
                         self.ctrl.view_update = view.update
                         self.ctrl.view_reset_camera = view.reset_camera
 
@@ -270,9 +278,16 @@ class VTKVisualizer:
         Example: 
             [z_value, self.default_max] - The range between the z_value and the self.default_max to be mapped to a mesh and assigned to the self.actor.
         """
+        # Properties to maintain as mesh is re-rendered
+        representation = self.state.mesh_representation
+        edges_enabled = self.state[f'{self.plotter_id}_edge_visibility']
+
         self.plotter.remove_actor(self.zActor)
+        
         z_layer = self.mesh.threshold([self.default_min, z_value], scalars='tentlevel')
-        self.zActor = self.plotter.add_mesh(z_layer, scalars='tentlevel', cmap="rainbow", opacity=1)
+        self.zActor = self.plotter.add_mesh(z_layer, scalars='tentlevel', cmap="rainbow", opacity=1, 
+                                            style=representation, show_edges=edges_enabled)
+
         self.update_representation(self.state.mesh_representation)
         self.plotter.render()
 
