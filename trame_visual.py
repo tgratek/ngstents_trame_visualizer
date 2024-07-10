@@ -199,6 +199,11 @@ axes.SetYLabelFormat("%6.1f")
 axes.SetZLabelFormat("%6.1f")
 axes.SetFlyModeToOuterEdges()
 
+scalar_bar = v.vtkScalarBarActor()
+scalar_bar.SetLookupTable(mapper.GetLookupTable())
+scalar_bar.SetTitle("Tent Level")
+renderer.AddActor(scalar_bar)
+
 renderer.ResetCamera()
 
 # -----------------------------------------------------------------------------
@@ -380,6 +385,8 @@ def update_zlayer_helper(z_value, **kwargs):
     global actor, mapper # For change to affect - To Do: make a better solution (?)
     colormap = state.mesh_color_preset
     actor, mapper = update_zlayer(z_value, actor, colormap)
+    scalar_bar.SetLookupTable(mapper.GetLookupTable())
+    ctrl.view_update()
 
 @state.change("cube_axes_visibility")
 def update_cube_axes_visibility(cube_axes_visibility, **kwargs):
