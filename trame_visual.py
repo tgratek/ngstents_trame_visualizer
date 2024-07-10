@@ -112,6 +112,32 @@ actor = v.vtkActor()
 actor.SetMapper(mapper)
 renderer.AddActor(actor)
 
+# ======== Slice ===================
+# Get the bounds of the dataset
+bounds = reader.GetOutput().GetBounds()
+min_z = bounds[5] # minimum z-coord is at index 5
+
+clipPlane = v.vtkPlane()
+clipPlane.SetOrigin(bounds[0] + (bounds[1] - bounds[0]) / 2,  # Center x-coordinate
+                    bounds[2] + (bounds[3] - bounds[2]) / 2,  # Center y-coordinate
+                    0.001)  # Minimum z-coordinate
+clipPlane.SetNormal(0, 0, 1)
+
+# Define the cutter
+cutter = v.vtkCutter()
+cutter.SetCutFunction(clipPlane)
+cutter.SetInputData(reader.GetOutput())
+cutter.Update()
+
+# Set up the mapper and actor for the cut
+cutterMapper = v.vtkDataSetMapper()
+cutterMapper.SetInputConnection(cutter.GetOutputPort())
+cutterActor = v.vtkActor()
+cutterActor.SetMapper(cutterMapper)
+cutterActor.GetProperty().SetColor(0.15, 0.9, 0.15)
+cutterActor.GetProperty().SetOpacity(0.7)
+cutterActor.GetProperty().SetEdgeVisibility(1)
+renderer.AddActor(cutterActor)
 
 def representation(actor):
     """
@@ -309,7 +335,7 @@ def update_mesh_opacity(mesh_opacity, **kwargs):
     ctrl.view_update()
 
 # ZLayer Callbacks
-def update_zlayer(z_value, actor, **kwargs):
+def update_zlayer(z_value, actor, colormap, **kwargs):
     """
     Update the Z-layer by creating a new threshold filter and reconfiguring the actor.
 
@@ -325,14 +351,16 @@ def update_zlayer(z_value, actor, **kwargs):
     threshold_filter.SetInputArrayToProcess(0, 0, 0, v.vtkDataObject.FIELD_ASSOCIATION_POINTS, 'tentlevel')
     threshold_filter.SetInputArrayToProcess(1, 0, 0, v.vtkDataObject.FIELD_ASSOCIATION_CELLS, 'tentnumber')
     threshold_filter.UseContinuousCellRangeOn()
-    threshold_filter.SetLowerThreshold(z_value)
-    threshold_filter.SetUpperThreshold(default_max)
+    threshold_filter.SetLowerThreshold(default_min)
+    threshold_filter.SetUpperThreshold(z_value)
     threshold_filter.Update()
     
     mapper.SetInputConnection(threshold_filter.GetOutputPort())
-    actor.SetMapper(mapper)
     
     set_map_colors(mapper)
+    use_preset(actor, colormap)
+    
+    actor.SetMapper(mapper)
         
     # Update the view
     renderWindow.Render()
@@ -350,7 +378,8 @@ def update_zlayer_helper(z_value, **kwargs):
         z_value (float): The new Z value to set the lower threshold of the threshold filter.
     """
     global actor, mapper # For change to affect - To Do: make a better solution (?)
-    actor, mapper = update_zlayer(z_value, actor)
+    colormap = state.mesh_color_preset
+    actor, mapper = update_zlayer(z_value, actor, colormap)
 
 @state.change("cube_axes_visibility")
 def update_cube_axes_visibility(cube_axes_visibility, **kwargs):
