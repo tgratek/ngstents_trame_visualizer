@@ -284,9 +284,10 @@ class VTKVisualizer:
 
         self.plotter.remove_actor(self.zActor)
         
-        z_layer = self.mesh.threshold([self.default_min, z_value], scalars='tentlevel')
-        self.zActor = self.plotter.add_mesh(z_layer, scalars='tentlevel', cmap="rainbow", opacity=1, 
-                                            style=representation, show_edges=edges_enabled)
+        z_layer = self.mesh.threshold(value=(self.default_min, z_value), scalars='tentlevel')
+        self.zActor = self.plotter.add_mesh(z_layer, scalars='tentlevel', cmap='rainbow', opacity=1, 
+                                            style=representation, show_edges=edges_enabled,
+                                            clim=(self.default_min, self.default_max))
 
         self.update_representation(self.state.mesh_representation)
         self.plotter.render()
