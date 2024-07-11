@@ -41,7 +41,7 @@ class VTKVisualizer:
         # Protected Data Members
         self._mesh = pv.read(self.filename)
         self._dataset_arrays = []
-        self._actor = None
+        self._baseActor = None
         self._zActor = None
         self._default_array = None
         self._default_min = None
@@ -84,12 +84,12 @@ class VTKVisualizer:
         return self._mesh
     
     @property
-    def actor(self):
-        return self._actor
+    def baseActor(self):
+        return self._baseActor
 
-    @actor.setter
-    def actor(self, value):
-        self._actor = value
+    @baseActor.setter
+    def baseActor(self, value):
+        self._baseActor = value
         
     @property
     def zActor(self):
@@ -239,15 +239,21 @@ class VTKVisualizer:
         slice_mesh = self.mesh
         slice_mesh.set_active_scalars('tentlevel')
         slice = slice_mesh.slice_along_axis(n=1, axis='z')
-        self.actor = self.plotter.add_mesh(
+
+        # Shape frame to put tent layers on
+        self.baseActor = self.plotter.add_mesh(
             slice,
             scalars="tentlevel",
-            cmap="Accent",
+            cmap=["#93C572"], # Pistachio
+            name="base-layer"
         )
+
+        # The tent layers to stack upon
         self.zActor = self.plotter.add_mesh(
             self.mesh.flip_z(None),
             scalars="tentlevel",
             cmap="rainbow",
+            name="z-layer"
         )
         
         self.plotter.reset_camera()
@@ -257,7 +263,6 @@ class VTKVisualizer:
         Update the representation mode of an actor.
 
         Args:
-            actor (vtk.vtkActor): The VTK actor to update.
             mode (int): The representation mode (Points, Wireframe, Surface).
         """
         property = self.zActor.prop
@@ -288,12 +293,13 @@ class VTKVisualizer:
         representation = self.state.mesh_representation
         edges_enabled = self.state[f'{self.plotter_id}_edge_visibility']
 
-        self.plotter.remove_actor(self.zActor)
-        
         z_layer = self.mesh.threshold(value=(self.default_min, z_value), scalars='tentlevel')
+
+        # Replace existing zActor with threshold
         self.zActor = self.plotter.add_mesh(z_layer, scalars='tentlevel', cmap='rainbow', opacity=1, 
                                             style=representation, show_edges=edges_enabled,
-                                            clim=(self.default_min, self.default_max))
+                                            clim=(self.default_min, self.default_max),
+                                            name="z-layer")
 
         self.update_representation(self.state.mesh_representation)
         self.plotter.render()
