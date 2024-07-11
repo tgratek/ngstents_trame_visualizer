@@ -1,6 +1,7 @@
 import pyvista as pv
 import vtk
 import numpy as np
+import os
 
 from trame.app import get_server
 from pyvista.trame.ui import plotter_ui, get_viewer
@@ -33,6 +34,7 @@ class VTKVisualizer:
         # Public Data Members
         self.server = get_server(client_type="vue3")
         self.filename = filename
+        self._check_file_path()
         self.plotter = pv.Plotter(notebook=True)
         self.viewer = get_viewer(self.plotter, server=self.server)
 
@@ -64,6 +66,10 @@ class VTKVisualizer:
 
         # Build UI
         self.ui
+
+    def _check_file_path(self):
+        if not os.path.isfile(self.filename):
+            raise FileNotFoundError(f"The file '{self.filename}' does not exist or is not a valid file path.")
 
     @property
     def state(self):
