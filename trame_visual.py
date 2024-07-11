@@ -16,6 +16,13 @@ from trame.ui.vuetify import SinglePageWithDrawerLayout
 from trame.widgets import vtk, vuetify, trame
 from trame_vtk.modules.vtk.serializers import configure_serializer
 
+# Required for interactor initialization
+from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa
+
+# Required for rendering initialization, not necessary for
+# local rendering, but doesn't hurt to include it
+import vtkmodules.vtkRenderingOpenGL2  # noqa
+
 configure_serializer(encode_lut=True, skip_light=True)
 # -----------------------------------------------------------------------------
 # Constants
@@ -105,6 +112,32 @@ actor = v.vtkActor()
 actor.SetMapper(mapper)
 renderer.AddActor(actor)
 
+# ======== Slice ===================
+# Get the bounds of the dataset
+bounds = reader.GetOutput().GetBounds()
+min_z = bounds[5] # minimum z-coord is at index 5
+
+clipPlane = v.vtkPlane()
+clipPlane.SetOrigin(bounds[0] + (bounds[1] - bounds[0]) / 2,  # Center x-coordinate
+                    bounds[2] + (bounds[3] - bounds[2]) / 2,  # Center y-coordinate
+                    0.001)  # Minimum z-coordinate
+clipPlane.SetNormal(0, 0, 1)
+
+# Define the cutter
+cutter = v.vtkCutter()
+cutter.SetCutFunction(clipPlane)
+cutter.SetInputData(reader.GetOutput())
+cutter.Update()
+
+# Set up the mapper and actor for the cut
+cutterMapper = v.vtkDataSetMapper()
+cutterMapper.SetInputConnection(cutter.GetOutputPort())
+cutterActor = v.vtkActor()
+cutterActor.SetMapper(cutterMapper)
+cutterActor.GetProperty().SetColor(0.15, 0.9, 0.15)
+cutterActor.GetProperty().SetOpacity(0.7)
+cutterActor.GetProperty().SetEdgeVisibility(1)
+renderer.AddActor(cutterActor)
 
 def representation(actor):
     """
@@ -147,13 +180,29 @@ def set_map_colors(mapper):
 representation(actor)
 set_map_colors(mapper)
 
-# Create axes actor
-axes = v.vtkAxesActor()
+# Create camera-axis actor
+axis = v.vtkAxesActor()
 orientationMarker = v.vtkOrientationMarkerWidget()
-orientationMarker.SetOrientationMarker(axes)
+orientationMarker.SetOrientationMarker(axis)
 orientationMarker.SetInteractor(renderWindowInteractor)
 orientationMarker.SetViewport(0.0, 0.0, 0.2, 0.2)
 orientationMarker.EnabledOn()
+
+axes = v.vtkCubeAxesActor()
+renderer.AddActor(axes)
+
+# Cube Axes: Boundaries, camera, and styling
+axes.SetBounds(actor.GetBounds())
+axes.SetCamera(renderer.GetActiveCamera())
+axes.SetXLabelFormat("%6.1f")
+axes.SetYLabelFormat("%6.1f")
+axes.SetZLabelFormat("%6.1f")
+axes.SetFlyModeToOuterEdges()
+
+scalar_bar = v.vtkScalarBarActor()
+scalar_bar.SetLookupTable(mapper.GetLookupTable())
+scalar_bar.SetTitle("Tent Level")
+renderer.AddActor(scalar_bar)
 
 renderer.ResetCamera()
 
@@ -164,7 +213,7 @@ server = get_server(client_type="vue2")
 state, ctrl = server.state, server.controller
 
 # Sets defaults:
-state.setdefault("active_ui", "default")
+state.setdefault("active_ui", "options")
 
 # -----------------------------------------------------------------------------
 # Callbacks
@@ -291,7 +340,7 @@ def update_mesh_opacity(mesh_opacity, **kwargs):
     ctrl.view_update()
 
 # ZLayer Callbacks
-def update_zlayer(z_value, actor, **kwargs):
+def update_zlayer(z_value, actor, colormap, **kwargs):
     """
     Update the Z-layer by creating a new threshold filter and reconfiguring the actor.
 
@@ -307,14 +356,16 @@ def update_zlayer(z_value, actor, **kwargs):
     threshold_filter.SetInputArrayToProcess(0, 0, 0, v.vtkDataObject.FIELD_ASSOCIATION_POINTS, 'tentlevel')
     threshold_filter.SetInputArrayToProcess(1, 0, 0, v.vtkDataObject.FIELD_ASSOCIATION_CELLS, 'tentnumber')
     threshold_filter.UseContinuousCellRangeOn()
-    threshold_filter.SetLowerThreshold(z_value)
-    threshold_filter.SetUpperThreshold(default_max)
+    threshold_filter.SetLowerThreshold(default_min)
+    threshold_filter.SetUpperThreshold(z_value)
     threshold_filter.Update()
     
     mapper.SetInputConnection(threshold_filter.GetOutputPort())
-    actor.SetMapper(mapper)
     
     set_map_colors(mapper)
+    use_preset(actor, colormap)
+    
+    actor.SetMapper(mapper)
         
     # Update the view
     renderWindow.Render()
@@ -332,7 +383,15 @@ def update_zlayer_helper(z_value, **kwargs):
         z_value (float): The new Z value to set the lower threshold of the threshold filter.
     """
     global actor, mapper # For change to affect - To Do: make a better solution (?)
-    actor, mapper = update_zlayer(z_value, actor)
+    colormap = state.mesh_color_preset
+    actor, mapper = update_zlayer(z_value, actor, colormap)
+    scalar_bar.SetLookupTable(mapper.GetLookupTable())
+    ctrl.view_update()
+
+@state.change("cube_axes_visibility")
+def update_cube_axes_visibility(cube_axes_visibility, **kwargs):
+    axes.SetVisibility(cube_axes_visibility)
+    ctrl.view_update()
 
 # -----------------------------------------------------------------------------
 # GUI elements
@@ -343,6 +402,14 @@ def standard_buttons():
     Define standard buttons for the GUI, including a checkbox for dark mode and a button to reset the camera.
     """
     vuetify.VCheckbox(
+        v_model=("cube_axes_visibility", True),
+        on_icon="mdi-cube-outline",
+        off_icon="mdi-cube-off-outline",
+        classes="mx-1",
+        hide_details=True,
+        dense=True,
+    )
+    vuetify.VCheckbox(
         v_model="$vuetify.theme.dark",
         on_icon="mdi-lightbulb-off-outline",
         off_icon="mdi-lightbulb-outline",
@@ -350,7 +417,17 @@ def standard_buttons():
         hide_details=True,
         dense=True,
     )
-    with vuetify.VBtn(icon=True, click="$refs.view.reset_camera()"):
+    vuetify.VCheckbox(
+        v_model=("viewMode", "local"),
+        on_icon="mdi-lan-disconnect",
+        off_icon="mdi-lan-connect",
+        true_value="local",
+        false_value="remote",
+        classes="mx-1",
+        hide_details=True,
+        dense=True,
+    )
+    with vuetify.VBtn(icon=True, click=ctrl.view_reset_camera):
         vuetify.VIcon("mdi-crop-free")
 
 def ui_card(title, ui_name):
@@ -379,7 +456,7 @@ def d_card():
     """
     Define the UI card for the default mesh settings, including options for representation, color, and opacity.
     """
-    with ui_card(title="Default", ui_name="default"):
+    with ui_card(title="Options", ui_name="options"):
         vuetify.VSelect(
             # Representation
             v_model=("mesh_representation", Representation.SurfaceWithEdges),
@@ -459,7 +536,7 @@ def d_card():
 # -----------------------------------------------------------------------------
 
 with SinglePageWithDrawerLayout(server) as layout:
-    layout.title.set_text("Viewer")
+    layout.title.set_text("Spacetime Tents Visualization")
 
     with layout.toolbar:
         # toolbar components
@@ -479,7 +556,10 @@ with SinglePageWithDrawerLayout(server) as layout:
             fluid=True,
             classes="pa-0 fill-height",
         ):
-            view = vtk.VtkLocalView(renderWindow)
+            view = vtk.VtkRemoteLocalView(
+                renderWindow, namespace="view", mode="local", 
+                interactive_ratio=1, interactive_quality=100
+            )
             ctrl.view_update = view.update
             ctrl.view_reset_camera = view.reset_camera
          
