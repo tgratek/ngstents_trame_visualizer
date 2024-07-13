@@ -40,6 +40,7 @@ class LookupTable:
 # -----------------------------------------------------------------------------
 class VTKVisualizer:
     def __init__(self, filename="test-files/file.vtk"):
+        print("Initializing pipeline")
         # Public Data Members
         self.server = get_server(client_type="vue3")
         self.filename = filename
@@ -64,6 +65,8 @@ class VTKVisualizer:
 
         self.render_window_interactor = vtk.vtkRenderWindowInteractor()
         self.render_window_interactor.SetRenderWindow(self.render_window)
+        
+        print('-- pipeline set')
 
         # Protected Data Members
         self._dataset_arrays = []
@@ -77,7 +80,9 @@ class VTKVisualizer:
 
         # Process Mesh and Setup UI
         self.extract_data_arrays()
+        print('setting up colors...')
         self.set_map_colors()
+        print('--colors set.')
         self.setup_callbacks()
 
         # State defaults (triggers callback functions)
@@ -85,7 +90,9 @@ class VTKVisualizer:
         self.state.z_value = self._default_min
 
         # Build UI
+        print("Starting UI...")
         self.ui
+        print("--UI Built")
 
     def _check_file_path(self):
         if not os.path.isfile(self.filename):
@@ -123,7 +130,7 @@ class VTKVisualizer:
                     vuetify3.VDivider(classes="mb-2")
                     self.drawer_card(title="Controls")
                     self.representation_dropdown()
-                    # self.color_map()
+                    self.color_map()
                     self.opacity_slider()
                     self.level_slider()
 
@@ -132,8 +139,10 @@ class VTKVisualizer:
                     with vuetify3.VContainer(fluid=True, classes="pa-0 fill-height"):
                         view = trame_vtk.VtkRemoteLocalView(
                             self.render_window,
+                            namespace="view",
+                            mode="local",
                             interactive_ratio=1,
-                            classes="fill-height",
+                            interactive_quality=100
                         )
                         self.ctrl.view_update = view.update
                         self.ctrl.view_reset_camera = view.reset_camera
@@ -235,8 +244,7 @@ class VTKVisualizer:
             property.SetRepresentationToSurface()
             property.SetPointSize(1)
             property.EdgeVisibilityOn()
-            
-        self.renderer.Render()
+        self.ctrl.view_update()
 
     def update_color_preset(self, preset):
         """
@@ -274,6 +282,7 @@ class VTKVisualizer:
         _min, _max = array.get("range")
         mapper = self.actor.GetMapper()
         mapper.SelectColorArray(array.get("text"))
+        print(array.get("text"))
         mapper.GetLookupTable().SetRange(_min, _max)
         if array.get("type") == vtk.vtkDataObject.FIELD_ASSOCIATION_POINTS:
             mapper.SetScalarModeToUsePointFieldData()
