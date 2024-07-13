@@ -4,7 +4,15 @@ import os
 from trame.app import get_server
 from trame.ui.vuetify3 import SinglePageWithDrawerLayout
 from trame.widgets import html, vuetify3, vtk as trame_vtk
+from trame_vtk.modules.vtk.serializers import configure_serializer
 
+# Required for interactor initialization
+from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa
+# Required for rendering initialization, not necessary for
+# local rendering, but doesn't hurt to include it
+import vtkmodules.vtkRenderingOpenGL2  # noqa
+
+configure_serializer(encode_lut=True, skip_light=False)
 # -----------------------------------------------------------------------------
 # Constants
 # -----------------------------------------------------------------------------
@@ -69,6 +77,7 @@ class VTKVisualizer:
 
         # Process Mesh and Setup UI
         self.extract_data_arrays()
+        self.set_map_colors()
         self.setup_callbacks()
 
         # State defaults (triggers callback functions)
@@ -112,21 +121,22 @@ class VTKVisualizer:
                 with layout.drawer as drawer:
                     drawer.width = 325
                     vuetify3.VDivider(classes="mb-2")
-
-                    with self.drawer_card(title="Controls"):
-                        self.representation_dropdown()
-                        self.level_slider()
-                        self.color_map()
-                        self.opacity_slider()
+                    self.drawer_card(title="Controls")
+                    self.representation_dropdown()
+                    # self.color_map()
+                    self.opacity_slider()
+                    self.level_slider()
 
                 # Content Area
                 with layout.content:
                     with vuetify3.VContainer(fluid=True, classes="pa-0 fill-height"):
-                        trame_vtk.VtkLocalView(
+                        view = trame_vtk.VtkRemoteLocalView(
                             self.render_window,
                             interactive_ratio=1,
                             classes="fill-height",
                         )
+                        self.ctrl.view_update = view.update
+                        self.ctrl.view_reset_camera = view.reset_camera
 
             self._ui = layout
         return self._ui
@@ -177,19 +187,19 @@ class VTKVisualizer:
             Args:
                 mesh_representation (int): The new representation mode.
             """
-            property = self.actor.GetProperty()
-            
-            if mesh_representation == Representation.Points:
-                property.SetRepresentationToPoints()
-                property.SetPointSize(5)
-            elif mesh_representation == Representation.Wireframe:
-                property.SetRepresentationToWireframe()
-                property.SetPointSize(1)
-            elif mesh_representation == Representation.Surface:
-                property.SetRepresentationToSurface()
-                property.SetPointSize(1)
-            
-            self.render_window.Render()
+            self.update_representation(mesh_representation)
+        
+        @self.state.change("mesh_color_preset")
+        def update_mesh_color_preset(mesh_color_preset, **kwargs):
+            self.update_color_preset(mesh_color_preset)
+        
+        @self.state.change("mesh_color_array_idx")
+        def update_mesh_color_index(mesh_color_array_idx, **kwargs):
+            self.update_color_index(mesh_color_array_idx)
+    
+        @self.state.change("mesh_opacity")
+        def update_mesh_opacity(mesh_opacity, **kwargs):
+            self.update_opacity(mesh_opacity)          
 
         @self.state.change("z_value")
         def update_zvalue(z_value, **kwargs):
@@ -200,6 +210,82 @@ class VTKVisualizer:
                 z_value (int): The new layer to be drawn to.
             """
             self.update_zlayer(z_value)
+
+    def update_representation(self, mode):
+        """
+        Update the representation mode of an actor.
+
+        Args:
+            mode (int): The representation mode (Points, Wireframe, Surface, SurfaceWithEdges).
+        """
+        property = self.actor.GetProperty()
+        if mode == Representation.Points:
+            property.SetRepresentationToPoints()
+            property.SetPointSize(5)
+            property.EdgeVisibilityOff()
+        elif mode == Representation.Wireframe:
+            property.SetRepresentationToWireframe()
+            property.SetPointSize(1)
+            property.EdgeVisibilityOff()
+        elif mode == Representation.Surface:
+            property.SetRepresentationToSurface()
+            property.SetPointSize(1)
+            property.EdgeVisibilityOff()
+        elif mode == Representation.SurfaceWithEdges:
+            property.SetRepresentationToSurface()
+            property.SetPointSize(1)
+            property.EdgeVisibilityOn()
+            
+        self.renderer.Render()
+
+    def update_color_preset(self, preset):
+        """
+        Apply a color lookup table preset to an actor.
+
+        Args:
+            preset (int): The color preset to apply (Rainbow, Inverted Rainbow, ect..)
+        """
+        lut = self.actor.GetMapper().GetLookupTable()
+        if preset == LookupTable.Rainbow:
+            lut.SetHueRange(0.666, 0.0)
+            lut.SetSaturationRange(1.0, 1.0)
+            lut.SetValueRange(1.0, 1.0)
+        elif preset == LookupTable.Inverted_Rainbow:
+            lut.SetHueRange(0.0, 0.666)
+            lut.SetSaturationRange(1.0, 1.0)
+            lut.SetValueRange(1.0, 1.0)
+        elif preset == LookupTable.Greyscale:
+            lut.SetHueRange(0.0, 0.0)
+            lut.SetSaturationRange(0.0, 0.0)
+            lut.SetValueRange(0.0, 1.0)
+        elif preset == LookupTable.Inverted_Greyscale:
+            lut.SetHueRange(0.0, 0.666)
+            lut.SetSaturationRange(0.0, 0.0)
+            lut.SetValueRange(1.0, 0.0)
+        lut.Build()
+        self.ctrl.view_update()
+
+    def update_color_index(self, index):
+        array = self._dataset_arrays[index]
+        self.color_by_array(array)
+        self.ctrl.view_update()
+
+    def color_by_array(self, array):
+        _min, _max = array.get("range")
+        mapper = self.actor.GetMapper()
+        mapper.SelectColorArray(array.get("text"))
+        mapper.GetLookupTable().SetRange(_min, _max)
+        if array.get("type") == vtk.vtkDataObject.FIELD_ASSOCIATION_POINTS:
+            mapper.SetScalarModeToUsePointFieldData()
+        else:
+            mapper.SetScalarModeToUseCellFieldData()
+        mapper.SetScalarVisibility(True)
+        mapper.SetUseLookupTableScalarRange(True)
+        self.mapper = mapper
+
+    def update_opacity(self, opacity):
+        self.actor.GetProperty().SetOpacity(opacity)
+        self.ctrl.view_update()
 
     def update_zlayer(self, z_value):
         """
@@ -213,14 +299,18 @@ class VTKVisualizer:
         """
         threshold = vtk.vtkThreshold()
         threshold.SetInputConnection(self.reader.GetOutputPort())
+        threshold.SetInputArrayToProcess(0, 0, 0, vtk.vtkDataObject.FIELD_ASSOCIATION_POINTS, 'tentlevel')
+        threshold.SetInputArrayToProcess(1, 0, 0, vtk.vtkDataObject.FIELD_ASSOCIATION_CELLS, 'tentnumber')
+        threshold.SetLowerThreshold(self._default_min)
         threshold.SetUpperThreshold(z_value)
         threshold.Update()
 
-        mapper = vtk.vtkDataSetMapper()
-        mapper.SetInputConnection(threshold.GetOutputPort())
+        # mapper = vtk.vtkDataSetMapper()
+        self.mapper.SetInputConnection(threshold.GetOutputPort())
 
-        self.actor.SetMapper(mapper)
+        self.actor.SetMapper(self.mapper)
         self.render_window.Render()
+        self.ctrl.view_update()
 
     def light_dark_toggle(self):
         """
@@ -319,6 +409,7 @@ class VTKVisualizer:
                     outlined=True,
                     classes="pt-1",
                 )
+
     def opacity_slider(self):
         vuetify3.VSlider(
             # Opacity
@@ -338,7 +429,7 @@ class VTKVisualizer:
         The slider UI for rendering different tent levels of the object.
         """
         vuetify3.VSlider(
-            v_model=("z value", 0),
+            v_model=("z_value", 0),
             min=int(self._default_min),
             max=int(self._default_max),
             step=1,
@@ -349,6 +440,30 @@ class VTKVisualizer:
             thumb_label=True
         )
 
+    def set_map_colors(self):
+        """
+        Configure the color mapping for a mapper using a lookup table.
+
+        Args:
+            mapper (vtk.vtkDataSetMapper): The VTK data set mapper to configure.
+        """
+        # Colors 
+        color_lut = self.mapper.GetLookupTable()
+        color_lut.SetNumberOfTableValues(256)
+        color_lut.SetHueRange(0.666, 0.0)
+        color_lut.SetSaturationRange(1.0, 1.0)
+        color_lut.SetValueRange(1.0, 1.0)
+        color_lut.Build()
+
+        # Mesh: Color by default array
+        self.mapper.SelectColorArray(self._default_array.get("text"))
+        self.mapper.GetLookupTable().SetRange(self._default_min, self._default_max)
+        if self._default_array.get("type") == vtk.vtkDataObject.FIELD_ASSOCIATION_POINTS:
+            self.mapper.SetScalarModeToUsePointFieldData()
+        else:
+            self.mapper.SetScalarModeToUseCellFieldData()
+        self.mapper.SetScalarVisibility(True)
+        self.mapper.SetUseLookupTableScalarRange(True)
 
 if __name__ == "__main__":
     visualizer = VTKVisualizer()
