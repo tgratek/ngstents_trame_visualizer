@@ -17,9 +17,20 @@ configure_serializer(encode_lut=True, skip_light=False)
 # Constants
 # -----------------------------------------------------------------------------
 class Representation:
-    Points = "points"
-    Wireframe = "wireframe"
-    Surface = "surface"
+    """
+    Constants for different types of representations of VTK actors.
+
+    Attributes:
+        Points (int): Representation as points.
+        Wireframe (int): Representation as wireframe.
+        Surface (int): Representation as a surface.
+        SurfaceWithEdges (int): Representation as a surface with edges.
+    """
+    Points = 0
+    Wireframe = 1
+    Surface = 2
+    SurfaceWithEdges = 3
+
 class LookupTable:
     """
     Constants for different types of lookup tables for color maps.
@@ -40,7 +51,6 @@ class LookupTable:
 # -----------------------------------------------------------------------------
 class VTKVisualizer:
     def __init__(self, filename="test-files/file.vtk"):
-        print("Initializing pipeline")
         # Public Data Members
         self.server = get_server(client_type="vue3")
         self.filename = filename
@@ -66,8 +76,6 @@ class VTKVisualizer:
         self.render_window_interactor = vtk.vtkRenderWindowInteractor()
         self.render_window_interactor.SetRenderWindow(self.render_window)
         
-        print('-- pipeline set')
-
         # Protected Data Members
         self._dataset_arrays = []
         self._default_array = None
@@ -80,19 +88,15 @@ class VTKVisualizer:
 
         # Process Mesh and Setup UI
         self.extract_data_arrays()
-        print('setting up colors...')
         self.set_map_colors()
-        print('--colors set.')
         self.setup_callbacks()
 
         # State defaults (triggers callback functions)
-        self.state.mesh_representation = Representation.Surface
+        self.state.mesh_representation = Representation.SurfaceWithEdges
         self.state.z_value = self._default_min
 
         # Build UI
-        print("Starting UI...")
         self.ui
-        print("--UI Built")
 
     def _check_file_path(self):
         if not os.path.isfile(self.filename):
@@ -123,6 +127,8 @@ class VTKVisualizer:
                         # Right aligns the containing elements
                         with vuetify3.VToolbarItems():
                             self.light_dark_toggle()
+                            with vuetify3.VBtn(icon=True, click=self.ctrl.view_reset_camera):
+                                vuetify3.VIcon("mdi-camera-flip")
 
                 # Side Drawer Components
                 with layout.drawer as drawer:
@@ -244,6 +250,7 @@ class VTKVisualizer:
             property.SetRepresentationToSurface()
             property.SetPointSize(1)
             property.EdgeVisibilityOn()
+            
         self.ctrl.view_update()
 
     def update_color_preset(self, preset):
@@ -282,7 +289,6 @@ class VTKVisualizer:
         _min, _max = array.get("range")
         mapper = self.actor.GetMapper()
         mapper.SelectColorArray(array.get("text"))
-        print(array.get("text"))
         mapper.GetLookupTable().SetRange(_min, _max)
         if array.get("type") == vtk.vtkDataObject.FIELD_ASSOCIATION_POINTS:
             mapper.SetScalarModeToUsePointFieldData()
@@ -370,19 +376,18 @@ class VTKVisualizer:
         The dropdown UI for selecting different representations, e.g. surface, wireframe, points, etc.
         """
         vuetify3.VSelect(
-            v_model=("mesh_representation", Representation.Surface),
+            v_model=("mesh_representation", Representation.SurfaceWithEdges),
             items=( 
                 "representations",
                 [
-                {"title": "Points", "value": Representation.Points},
-                {"title": "Wireframe", "value": Representation.Wireframe},
-                {"title": "Surface", "value": Representation.Surface},
+                {"title": "Points", "value": 0},
+                {"title": "Wireframe", "value": 1},
+                {"title": "Surface", "value": 2},
+                {"title": "SurfaceWithEdges", "value": 3},
                ],
             ),
             label="Representation",
             hide_details=True,
-            dense=True,
-            outlined=True,
             classes="pt-1",
         )
 
@@ -393,10 +398,15 @@ class VTKVisualizer:
                     # Color By
                     label="Color by",
                     v_model=("mesh_color_array_idx", 0),
-                    items=("array_list", self._dataset_arrays),
+                    items=(
+                        "array_list",
+                        [
+                            { "title": "tentlevel", "value": 0 },
+                            { "title": "tentnumber", "value": 1},
+                        ]),
                     hide_details=True,
-                    dense=True,
-                    outlined=True,
+                    density="compact",
+                    variant="outlined",
                     classes="pt-1",
                 )
             with vuetify3.VCol(cols="6"):
@@ -407,15 +417,15 @@ class VTKVisualizer:
                     items=(
                         "colormaps",
                         [
-                            {"text": "Rainbow", "value": 0},
-                            {"text": "Inv Rainbow", "value": 1},
-                            {"text": "Greyscale", "value": 2},
-                            {"text": "Inv Greyscale", "value": 3},
+                            {"title": "Rainbow", "value": 0},
+                            {"title": "Inv Rainbow", "value": 1},
+                            {"title": "Greyscale", "value": 2},
+                            {"title": "Inv Greyscale", "value": 3},
                         ],
                     ),
                     hide_details=True,
-                    dense=True,
-                    outlined=True,
+                    density="compact",
+                    variant="outlined",
                     classes="pt-1",
                 )
 
@@ -429,7 +439,7 @@ class VTKVisualizer:
             label="Opacity",
             classes="mt-1",
             hide_details=True,
-            dense=True,
+            density="compact",
             thumb_label=True,
     )
 
@@ -445,8 +455,10 @@ class VTKVisualizer:
             label="Level",
             classes="mt-1",
             hide_details=True,
-            dense=True,
-            thumb_label=True
+            density="compact",
+            thumb_label=True,
+            thumb_color="red",
+            ticks="always"
         )
 
     def set_map_colors(self):
