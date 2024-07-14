@@ -72,16 +72,16 @@ class VTKVisualizer:
 
         self.actor = vtk.vtkActor()
         self.actor.SetMapper(self.mapper)
-        
-        self.base_layer = self.base_actor()
-        self.base_layer.GetProperty().SetColor(0.15, 0.9, 0.15)
-        self.base_layer.GetProperty().SetOpacity(0.7)
-        self.base_layer.GetProperty().SetEdgeVisibility(1)
-        self.base_layer.GetProperty().SetEdgeOpacity(0.7)
+        self.base_layer = self.setup_base_actor()
 
         self.renderer = vtk.vtkRenderer()
         self.renderer.AddActor(self.actor)
         self.renderer.AddActor(self.base_layer)
+        
+        self.axes = self.setup_axes_actor()
+        self.scalar_bar = self.setup_scalar_bar()
+        self.renderer.AddActor(self.axes)
+        self.renderer.AddActor(self.scalar_bar)
 
         self.render_window = vtk.vtkRenderWindow()
         self.render_window.AddRenderer(self.renderer)
@@ -109,7 +109,8 @@ class VTKVisualizer:
 
         # State defaults (triggers callback functions)
         self.state.mesh_representation = Representation.SurfaceWithEdges
-        self.state.z_value = self._default_min
+        self.state.z_value = self.default_min
+        self.state.cube_axes_visibility = True
 
         # Build UI
         self.ui
@@ -232,7 +233,7 @@ class VTKVisualizer:
         self.default_array = self.dataset_arrays[0]
         self.default_min, self.default_max = self.default_array.get("range")
 
-    def base_actor(self):
+    def setup_base_actor(self):
         """
         Function to return a vtkActor that is mapped at the base z-layer of the mesh.
 
@@ -256,7 +257,27 @@ class VTKVisualizer:
         cutter_mapper.SetInputConnection(cutter.GetOutputPort())
         base_layer = vtk.vtkActor()
         base_layer.SetMapper(cutter_mapper)
+        base_layer.GetProperty().SetColor(0.15, 0.9, 0.15)
+        base_layer.GetProperty().SetOpacity(0.7)
+        base_layer.GetProperty().SetEdgeVisibility(1)
+        base_layer.GetProperty().SetEdgeOpacity(0.7)
         return base_layer
+
+    def setup_axes_actor(self):
+        axes = vtk.vtkCubeAxesActor()
+        axes.SetBounds(self.actor.GetBounds())
+        axes.SetCamera(self.renderer.GetActiveCamera())
+        axes.SetXLabelFormat("%.1e")
+        axes.SetYLabelFormat("%.1e")
+        axes.SetZLabelFormat("%.1e")
+        axes.SetFlyModeToOuterEdges()
+        return axes
+
+    def setup_scalar_bar(self):
+        scalar_bar = vtk.vtkScalarBarActor()
+        scalar_bar.SetLookupTable(self.mapper.GetLookupTable())
+        scalar_bar.SetTitle("Tent Level")
+        return scalar_bar
 
     def setup_callbacks(self):
         """
@@ -311,6 +332,17 @@ class VTKVisualizer:
                 z_value (int): The new layer to be drawn to.
             """
             self.update_zlayer(z_value)
+        
+        @self.state.change("cube_axes_visibility")
+        def update_cube_axes_visibility(cube_axes_visibility, **kwargs):
+            """
+            State change callback to update the axes visibility.
+
+            Args:
+                cube_axes_visibility (bool): True: visibile, False: hidden.
+            """
+            self.axes.SetVisibility(cube_axes_visibility)
+            self.ctrl.view_update()
 
     def update_representation(self, mode):
         """
@@ -431,7 +463,6 @@ class VTKVisualizer:
         self.actor.SetMapper(self.mapper)
         self.render_window.Render()
         self.ctrl.view_update()
-
 
     def drawer_card(self, title):
         """
@@ -601,7 +632,7 @@ class VTKVisualizer:
 
     def standard_buttons(self):
         """
-        Define standard buttons for the GUI, including a checkbox for axes and a button to reset the camera.
+        Define standard buttons for the GUI, including a checkbox for axes, view type, and a button to reset the camera.
         """
         with vuetify3.VTooltip(location='bottom'):
             with vuetify3.Template(v_slot_activator='{ props }'):
@@ -609,15 +640,13 @@ class VTKVisualizer:
                     vuetify3.VCheckboxBtn(
                         v_model=("cube_axes_visibility", True),
                         true_icon="mdi-cube-outline",
-                        true_value=True,
                         false_icon="mdi-cube-off-outline",
-                        false_value=False,
                         classes="mx-1",
                         hide_details=True,
                         density="compact"
                     )
                     
-            tooltip = "Toggle axes ruler ({{ cube_axes_visibility === 'True' ? 'On' : 'Off' }})."
+            tooltip = "Toggle axes ruler ({{ cube_axes_visibility ? 'On' : 'Off' }})."
             html.Span(tooltip) 
                    
         with vuetify3.VTooltip(location='bottom'):
