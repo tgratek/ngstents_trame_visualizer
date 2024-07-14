@@ -77,11 +77,6 @@ class VTKVisualizer:
         self.renderer = vtk.vtkRenderer()
         self.renderer.AddActor(self.actor)
         self.renderer.AddActor(self.base_layer)
-        
-        self.axes = self.setup_axes_actor()
-        self.scalar_bar = self.setup_scalar_bar()
-        self.renderer.AddActor(self.axes)
-        self.renderer.AddActor(self.scalar_bar)
 
         self.render_window = vtk.vtkRenderWindow()
         self.render_window.AddRenderer(self.renderer)
@@ -106,6 +101,12 @@ class VTKVisualizer:
         self.extract_data_arrays()
         self.set_map_colors()
         self.setup_callbacks()
+        
+        # Axes & Scalar Bar
+        self.scalar_bar = self.setup_scalar_bar(self.default_array)
+        self.renderer.AddActor(self.scalar_bar)
+        self.axes = self.setup_axes_actor()
+        self.renderer.AddActor(self.axes)
 
         # State defaults (triggers callback functions)
         self.state.mesh_representation = Representation.SurfaceWithEdges
@@ -273,10 +274,10 @@ class VTKVisualizer:
         axes.SetFlyModeToOuterEdges()
         return axes
 
-    def setup_scalar_bar(self):
+    def setup_scalar_bar(self, array):
         scalar_bar = vtk.vtkScalarBarActor()
         scalar_bar.SetLookupTable(self.mapper.GetLookupTable())
-        scalar_bar.SetTitle("Tent Level")
+        scalar_bar.SetTitle(array["text"])
         return scalar_bar
 
     def setup_callbacks(self):
@@ -408,6 +409,7 @@ class VTKVisualizer:
         """
         array = self.dataset_arrays[index]
         self.color_by_array(array)
+        self.scalar_bar.SetTitle(array['text']) # Dynamically update the scalar bar title.
         self.ctrl.view_update()
 
     def color_by_array(self, array):
