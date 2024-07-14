@@ -88,6 +88,9 @@ class VTKVisualizer:
 
         self.render_window_interactor = vtk.vtkRenderWindowInteractor()
         self.render_window_interactor.SetRenderWindow(self.render_window)
+        self.render_window_interactor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
+        
+        self.renderer.ResetCamera()
         
         # Protected Data Members
         self._dataset_arrays = []
@@ -128,12 +131,33 @@ class VTKVisualizer:
     @property
     def ctrl(self):
         return self.server.controller
+    
+    @property
+    def dataset_arrays(self):
+        return self._dataset_arrays
+    
+    @property
+    def default_min(self):
+        return self._default_min
+    
+    @default_min.setter
+    def default_min(self, value):
+        self._default_min = value
+
+    @property
+    def default_max(self):
+        return self._default_max
+    
+    @default_max.setter
+    def default_max(self, value):
+        self._default_max = value
 
     @property
     def ui(self):
         if self._ui is None:
             with SinglePageWithDrawerLayout(self.server)  as layout:
                 layout.title.set_text("VTK Visualization")
+                layout.root.theme = ("theme",)
 
                 # Top Toolbar Components
                 with layout.toolbar:                
@@ -146,8 +170,7 @@ class VTKVisualizer:
                         # Right aligns the containing elements
                         with vuetify3.VToolbarItems():
                             self.light_dark_toggle()
-                            with vuetify3.VBtn(icon=True, click=self.ctrl.view_reset_camera):
-                                vuetify3.VIcon("mdi-camera-flip")
+                            self.standard_buttons()
 
                 # Side Drawer Components
                 with layout.drawer as drawer:
@@ -185,7 +208,7 @@ class VTKVisualizer:
         for i in range(point_data.GetNumberOfArrays()):
             array = point_data.GetArray(i)
             array_range = array.GetRange()
-            self._dataset_arrays.append(
+            self.dataset_arrays.append(
                 {
                     "text": array.GetName(),
                     "value": i,
@@ -197,7 +220,7 @@ class VTKVisualizer:
         for i in range(cell_data.GetNumberOfArrays()):
             array = cell_data.GetArray(i)
             array_range = array.GetRange()
-            self._dataset_arrays.append(
+            self.dataset_arrays.append(
                 {
                     "text": array.GetName(),
                     "value": i,
@@ -206,8 +229,8 @@ class VTKVisualizer:
                 }
             )
 
-        self._default_array = self._dataset_arrays[0]
-        self._default_min, self._default_max = self._default_array.get("range")
+        self.default_array = self.dataset_arrays[0]
+        self.default_min, self.default_max = self.default_array.get("range")
 
     def base_actor(self):
         """
@@ -351,7 +374,7 @@ class VTKVisualizer:
         Args:
             index (int): Retrieved from the the callback.
         """
-        array = self._dataset_arrays[index]
+        array = self.dataset_arrays[index]
         self.color_by_array(array)
         self.ctrl.view_update()
 
@@ -409,28 +432,6 @@ class VTKVisualizer:
         self.render_window.Render()
         self.ctrl.view_update()
 
-    def light_dark_toggle(self):
-        """
-        Define Light / Dark checkbox toggle for the GUI to switch the theme of the Vuetify page,
-        inverting the colors of Vuetify components contained in the toolbar and drawer.
-        """
-        with vuetify3.VTooltip(location='bottom'):
-            with vuetify3.Template(v_slot_activator='{ props }'):
-                with html.Div(v_bind='props'):
-                    vuetify3.VCheckboxBtn(
-                        v_model="theme",
-                        density="compact",
-                        false_icon="mdi-weather-sunny",
-                        false_value="light",
-                        true_icon="mdi-weather-night",
-                        true_value="dark",
-                        classes="pa-0 ma-0 mr-2",
-                        style="max-width: 30px",
-                    )
-
-            # Current theme of layout page contained in HTML element
-            tooltip = "Toggle Page Theme ({{ theme === 'light' ? 'Light' : 'Dark' }})"
-            html.Span(tooltip)
 
     def drawer_card(self, title):
         """
@@ -566,14 +567,84 @@ class VTKVisualizer:
         color_lut.Build()
 
         # Mesh: Color by default array
-        self.mapper.SelectColorArray(self._default_array.get("text"))
-        self.mapper.GetLookupTable().SetRange(self._default_min, self._default_max)
-        if self._default_array.get("type") == vtk.vtkDataObject.FIELD_ASSOCIATION_POINTS:
+        self.mapper.SelectColorArray(self.default_array.get("text"))
+        self.mapper.GetLookupTable().SetRange(self.default_min, self.default_max)
+        if self.default_array.get("type") == vtk.vtkDataObject.FIELD_ASSOCIATION_POINTS:
             self.mapper.SetScalarModeToUsePointFieldData()
         else:
             self.mapper.SetScalarModeToUseCellFieldData()
         self.mapper.SetScalarVisibility(True)
         self.mapper.SetUseLookupTableScalarRange(True)
+
+    def light_dark_toggle(self):
+        """
+        Define Light / Dark checkbox toggle for the GUI to switch the theme of the Vuetify page,
+        inverting the colors of Vuetify components contained in the toolbar and drawer.
+        """
+        with vuetify3.VTooltip(location='bottom'):
+            with vuetify3.Template(v_slot_activator='{ props }'):
+                with html.Div(v_bind='props'):
+                    vuetify3.VCheckboxBtn(
+                        v_model="theme",
+                        density="compact",
+                        false_icon="mdi-weather-sunny",
+                        false_value="light",
+                        true_icon="mdi-weather-night",
+                        true_value="dark",
+                        classes="pa-0 ma-0 mr-2",
+                        style="max-width: 30px",
+                    )
+
+            # Current theme of layout page contained in HTML element
+            tooltip = "Toggle Page Theme ({{ theme === 'light' ? 'Light' : 'Dark' }})"
+            html.Span(tooltip)
+
+    def standard_buttons(self):
+        """
+        Define standard buttons for the GUI, including a checkbox for axes and a button to reset the camera.
+        """
+        with vuetify3.VTooltip(location='bottom'):
+            with vuetify3.Template(v_slot_activator='{ props }'):
+                with html.Div(v_bind='props'):
+                    vuetify3.VCheckboxBtn(
+                        v_model=("cube_axes_visibility", True),
+                        true_icon="mdi-cube-outline",
+                        true_value=True,
+                        false_icon="mdi-cube-off-outline",
+                        false_value=False,
+                        classes="mx-1",
+                        hide_details=True,
+                        density="compact"
+                    )
+                    
+            tooltip = "Toggle axes ruler ({{ cube_axes_visibility === 'True' ? 'On' : 'Off' }})."
+            html.Span(tooltip) 
+                   
+        with vuetify3.VTooltip(location='bottom'):
+            with vuetify3.Template(v_slot_activator='{ props }'):
+                with html.Div(v_bind='props'):
+                    vuetify3.VCheckboxBtn(
+                        v_model=("viewMode", "local"),
+                        true_icon="mdi-lan-disconnect",
+                        true_value="local",
+                        false_icon="mdi-lan-connect",
+                        false_value="remote",
+                        classes="mx-1",
+                        hide_details=True,
+                        density="compact",
+                    )
+                    
+            tooltip = "Toggle ({{ viewMode === 'local' ? 'Local' : 'Remote' }}) View."
+            html.Span(tooltip)
+                    
+        with vuetify3.VBtn(icon=True, click=self.ctrl.view_reset_camera):
+            with vuetify3.VTooltip(location='bottom'):
+                with vuetify3.Template(v_slot_activator='{ props }'):
+                    with html.Div(v_bind='props'):
+                        vuetify3.VIcon("mdi-camera-flip")
+                
+                tooltip = "Reset Camera"
+                html.Span(tooltip)
 
 if __name__ == "__main__":
     visualizer = VTKVisualizer()
