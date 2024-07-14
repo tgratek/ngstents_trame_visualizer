@@ -50,6 +50,12 @@ class LookupTable:
 # Main Class
 # -----------------------------------------------------------------------------
 class VTKVisualizer:
+    """
+    The base class to be used to read in a `.vtk` file and visualize the mesh.
+    Includes a base-layer (slice of the z-axis) as well as a UI to navigate between
+    different z-axis layers. The UI provides options for different representations and
+    color maps.
+    """
     def __init__(self, filename="test-files/file.vtk"):
         # Public Data Members
         self.server = get_server(client_type="vue3")
@@ -66,9 +72,16 @@ class VTKVisualizer:
 
         self.actor = vtk.vtkActor()
         self.actor.SetMapper(self.mapper)
+        
+        self.base_layer = self.base_actor()
+        self.base_layer.GetProperty().SetColor(0.15, 0.9, 0.15)
+        self.base_layer.GetProperty().SetOpacity(0.7)
+        self.base_layer.GetProperty().SetEdgeVisibility(1)
+        self.base_layer.GetProperty().SetEdgeOpacity(0.7)
 
         self.renderer = vtk.vtkRenderer()
         self.renderer.AddActor(self.actor)
+        self.renderer.AddActor(self.base_layer)
 
         self.render_window = vtk.vtkRenderWindow()
         self.render_window.AddRenderer(self.renderer)
@@ -99,6 +112,12 @@ class VTKVisualizer:
         self.ui
 
     def _check_file_path(self):
+        """
+        Checks the file path is correct for the file to be read in.
+
+        Raises:
+            FileNotFoundError: File path is invalid.
+        """
         if not os.path.isfile(self.filename):
             raise FileNotFoundError(f"The file '{self.filename}' does not exist or is not a valid file path.")
 
@@ -190,6 +209,32 @@ class VTKVisualizer:
         self._default_array = self._dataset_arrays[0]
         self._default_min, self._default_max = self._default_array.get("range")
 
+    def base_actor(self):
+        """
+        Function to return a vtkActor that is mapped at the base z-layer of the mesh.
+
+        Returns:
+            vtkActor: The base layer actor from the "slice" of the bottom z-axis.
+        """
+        bounds = self.reader.GetOutput().GetBounds()
+        
+        clip_plane = vtk.vtkPlane()
+        clip_plane.SetOrigin(bounds[0] + (bounds[1] - bounds[0]) / 2,
+                             bounds[2] + (bounds[3] - bounds[2]) / 2,
+                             0.0001) # Minumum Z-Axis (bounds[5] - Kind of in the way)
+        clip_plane.SetNormal(0, 0, 1)
+        
+        cutter = vtk.vtkCutter()
+        cutter.SetCutFunction(clip_plane)
+        cutter.SetInputData(self.reader.GetOutput())
+        cutter.Update()
+        
+        cutter_mapper = vtk.vtkDataSetMapper()
+        cutter_mapper.SetInputConnection(cutter.GetOutputPort())
+        base_layer = vtk.vtkActor()
+        base_layer.SetMapper(cutter_mapper)
+        return base_layer
+
     def setup_callbacks(self):
         """
         Sets up all event listener callbacks for when state changes trigger.
@@ -206,14 +251,32 @@ class VTKVisualizer:
         
         @self.state.change("mesh_color_preset")
         def update_mesh_color_preset(mesh_color_preset, **kwargs):
+            """
+            State change callback to update the color map preset.
+
+            Args:
+                mesh_color_preset (int): The new color map.
+            """
             self.update_color_preset(mesh_color_preset)
         
         @self.state.change("mesh_color_array_idx")
         def update_mesh_color_index(mesh_color_array_idx, **kwargs):
+            """
+            State change callback to change the array used for input.
+
+            Args:
+                mesh_color_array_idx (int): The index of the new array.
+            """
             self.update_color_index(mesh_color_array_idx)
     
         @self.state.change("mesh_opacity")
         def update_mesh_opacity(mesh_opacity, **kwargs):
+            """
+            State change callback to update the `self.actor` mesh's opacity.
+
+            Args:
+                mesh_opacity (float): The new opacity for the mesh.
+            """
             self.update_opacity(mesh_opacity)          
 
         @self.state.change("z_value")
@@ -281,11 +344,24 @@ class VTKVisualizer:
         self.ctrl.view_update()
 
     def update_color_index(self, index):
+        """
+        Function to use the index argument to switch to a different array from the
+        `self._dataset_arrays`.
+
+        Args:
+            index (int): Retrieved from the the callback.
+        """
         array = self._dataset_arrays[index]
         self.color_by_array(array)
         self.ctrl.view_update()
 
     def color_by_array(self, array):
+        """
+        Apply color mapping to an actor based on a data array.
+
+        Args:
+            array (dict): The data array to use for color mapping.
+        """
         _min, _max = array.get("range")
         mapper = self.actor.GetMapper()
         mapper.SelectColorArray(array.get("text"))
@@ -299,6 +375,12 @@ class VTKVisualizer:
         self.mapper = mapper
 
     def update_opacity(self, opacity):
+        """
+        Sets the default actor's `self.actor` opacity from the opacity argument.
+
+        Args:
+            opacity (float): The desired opacity, from a callback.
+        """
         self.actor.GetProperty().SetOpacity(opacity)
         self.ctrl.view_update()
 
@@ -358,7 +440,7 @@ class VTKVisualizer:
             title (str): The title of the card.
 
         Returns:
-            vuetify.VCardText: The content area of the card.
+            vuetify3.VCardText: The content area of the card.
         """
         with vuetify3.VCard():
             vuetify3.VCardTitle(
@@ -392,7 +474,13 @@ class VTKVisualizer:
         )
 
     def color_map(self):
-       with vuetify3.VRow(classes="pt-2", dense=True):
+        """
+        UI section for the color map. Controlled from the `"mesh_color_array_idx"`,
+        which differentiates between the two arrays. For Vuetify3, had to 'hard' code
+        the `"array_list"` for the information to be visable.
+        Also houses the UI for selecting the desired colormap.
+        """
+        with vuetify3.VRow(classes="pt-2", dense=True):
             with vuetify3.VCol(cols="6"):
                 vuetify3.VSelect(
                     # Color By
@@ -430,6 +518,9 @@ class VTKVisualizer:
                 )
 
     def opacity_slider(self):
+        """
+        Vuetify slider for controlling the opacity. Uses `"mesh_opacity"` for callbacks.
+        """
         vuetify3.VSlider(
             # Opacity
             v_model=("mesh_opacity", 1),
@@ -445,7 +536,8 @@ class VTKVisualizer:
 
     def level_slider(self):
         """
-        The slider UI for rendering different tent levels of the object.
+        Vuetify slider for rendering different tent levels of the object. Uses `"z_value"`
+        for callbacks.
         """
         vuetify3.VSlider(
             v_model=("z_value", 0),
@@ -464,9 +556,6 @@ class VTKVisualizer:
     def set_map_colors(self):
         """
         Configure the color mapping for a mapper using a lookup table.
-
-        Args:
-            mapper (vtk.vtkDataSetMapper): The VTK data set mapper to configure.
         """
         # Colors 
         color_lut = self.mapper.GetLookupTable()
