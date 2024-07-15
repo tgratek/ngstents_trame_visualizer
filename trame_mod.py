@@ -8,6 +8,8 @@ from trame_vtk.modules.vtk.serializers import configure_serializer
 
 # Required for interactor initialization
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa
+from vtkmodules.vtkRenderingAnnotation import vtkScalarBarActor
+
 # Required for rendering initialization, not necessary for
 # local rendering, but doesn't hurt to include it
 import vtkmodules.vtkRenderingOpenGL2  # noqa
@@ -190,7 +192,7 @@ class VTKVisualizer:
                         view = trame_vtk.VtkRemoteLocalView(
                             self.render_window,
                             namespace="view",
-                            mode="local",
+                            mode="remote",
                             interactive_ratio=1,
                             interactive_quality=100
                         )
@@ -277,6 +279,8 @@ class VTKVisualizer:
     def setup_scalar_bar(self, array):
         scalar_bar = vtk.vtkScalarBarActor()
         scalar_bar.SetLookupTable(self.mapper.GetLookupTable())
+        # scalar_bar.SetNumberOfTableValues(7)
+        # scalar_bar.UnconstrainedFontSizeOn()
         scalar_bar.SetTitle(array["text"])
         return scalar_bar
 
