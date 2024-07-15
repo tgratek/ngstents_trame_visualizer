@@ -47,6 +47,16 @@ class VTKVisualizer:
         self._default_min = None
         self._default_max = None
         self._ui = None
+        # Scalar Bar Customization
+        self._sargs = dict(
+                        title="Tent Level",
+                        fmt="%.0f",
+                        font_family="arial",
+                        vertical=True,
+                        height=.8,
+                        width=.05,
+                        position_y=0.1
+                    )
         # Needed for extracting state values provided by PyVista's ui_controls
         # https://github.com/pyvista/pyvista/blob/main/pyvista/trame/ui/base_viewer.py#L45
         self._plotter_id = self.plotter._id_name
@@ -62,7 +72,7 @@ class VTKVisualizer:
 
         # State defaults (triggers callback functions)
         self.state.mesh_representation = Representation.Surface
-        self.state.z_value = 0
+        self.state.z_value = int(self.default_min)
 
         # Build UI
         self.ui
@@ -119,6 +129,10 @@ class VTKVisualizer:
     def default_max(self, value):
         self._default_max = value
 
+    @property
+    def sargs(self):
+        return self._sargs
+    
     @property
     def plotter_id(self):
         return self._plotter_id
@@ -189,6 +203,7 @@ class VTKVisualizer:
         # Default to Light Mode
         self.plotter.set_background("snow")
         self.plotter.theme.font.color = "black"
+        self.plotter.theme.font.size = 12
 
         # Customize XYZ Axes Widget
         self.plotter.add_axes(
@@ -240,22 +255,28 @@ class VTKVisualizer:
         slice_mesh.set_active_scalars('tentlevel')
         slice = slice_mesh.slice_along_axis(n=1, axis='z')
 
-        # Shape frame to put tent layers on
-        self.baseActor = self.plotter.add_mesh(
-            slice,
-            scalars="tentlevel",
-            cmap=["#93C572"], # Pistachio
-            name="base-layer"
-        )
-
         # The tent layers to stack upon
         self.zActor = self.plotter.add_mesh(
             self.mesh.flip_z(None),
             scalars="tentlevel",
+            scalar_bar_args=self.sargs,
             cmap="rainbow",
             name="z-layer"
         )
-        
+
+        # Shape frame to stack tent layers on
+        # baseActor is added second so that the rainbow-mapped scalar bar from zActor
+        # is displayed rather than the single color mapped bar from this actor.
+        # baseActor needs to know the scalars so that the bar does not momentarily disappear
+        # during the times where the zActor is re-rendered from dragging the level slider.
+        self.baseActor = self.plotter.add_mesh(
+            slice,
+            scalars="tentlevel",
+            scalar_bar_args=self.sargs,
+            cmap=["#93C572"], # Pistachio
+            name="base-layer"
+        )
+
         self.plotter.reset_camera()
 
     def update_representation(self, mode):
@@ -296,9 +317,9 @@ class VTKVisualizer:
         z_layer = self.mesh.threshold(value=(self.default_min, z_value), scalars='tentlevel')
 
         # Replace existing zActor with threshold
-        self.zActor = self.plotter.add_mesh(z_layer, scalars='tentlevel', cmap='rainbow', opacity=1, 
-                                            style=representation, show_edges=edges_enabled,
-                                            clim=(self.default_min, self.default_max),
+        self.zActor = self.plotter.add_mesh(z_layer, scalars='tentlevel', scalar_bar_args=self.sargs,
+                                            cmap='rainbow', clim=(self.default_min, self.default_max), 
+                                            opacity=1, style=representation, show_edges=edges_enabled,
                                             name="z-layer")
 
         self.update_representation(self.state.mesh_representation)
