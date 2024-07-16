@@ -39,13 +39,13 @@ class LookupTable:
     Attributes:
         Rainbow (int): Rainbow color map.
         Inverted_Rainbow (int): Inverted rainbow color map.
-        Greyscale (int): Greyscale color map.
-        Inverted_Greyscale (int): Inverted greyscale color map.
+        Viridis (int): Viridis color map.
+        Inferno (int): Inferno color map.
     """
     Rainbow = 0
     Inverted_Rainbow = 1
-    Greyscale = 2
-    Inverted_Greyscale = 3
+    Viridis = 2
+    Inferno = 3
 
 # -----------------------------------------------------------------------------
 # Main Class
@@ -179,12 +179,12 @@ class VTKVisualizer:
                 # Side Drawer Components
                 with layout.drawer as drawer:
                     drawer.width = 325
-                    vuetify3.VDivider(classes="mb-2")
                     self.drawer_card(title="Controls")
                     self.representation_dropdown()
                     self.color_map()
-                    self.opacity_slider()
-                    self.level_slider()
+                    with vuetify3.VContainer(fluid=True, classes="pa-4"):
+                        self.opacity_slider()
+                        self.level_slider()
 
                 # Content Area
                 with layout.content:
@@ -391,14 +391,14 @@ class VTKVisualizer:
             lut.SetHueRange(0.0, 0.666)
             lut.SetSaturationRange(1.0, 1.0)
             lut.SetValueRange(1.0, 1.0)
-        elif preset == LookupTable.Greyscale:
-            lut.SetHueRange(0.0, 0.0)
-            lut.SetSaturationRange(0.0, 0.0)
-            lut.SetValueRange(0.0, 1.0)
-        elif preset == LookupTable.Inverted_Greyscale:
-            lut.SetHueRange(0.0, 0.666)
-            lut.SetSaturationRange(0.0, 0.0)
-            lut.SetValueRange(1.0, 0.0)
+        elif preset == LookupTable.Viridis: # WIP
+            lut.SetHueRange(0.85, 0.12)
+            lut.SetSaturationRange(1.0, 1.0)
+            lut.SetValueRange(0.25, 1.0)
+        elif preset == LookupTable.Inferno: # WIP
+            lut.SetHueRange(0.00, 0.2)
+            lut.SetSaturationRange(1.0, 1.0)
+            lut.SetValueRange(0.2, 1.0)
         lut.Build()
         self.ctrl.view_update()
 
@@ -484,7 +484,7 @@ class VTKVisualizer:
                 classes="py-1 text-button font-weight-bold text-teal-darken-1",
                 style="user-select: none;",
                 hide_details=True,
-                dense=True,
+                density="compact",
             )
             content = vuetify3.VCardText(classes="py-2")
         return content
@@ -543,8 +543,8 @@ class VTKVisualizer:
                         [
                             {"title": "Rainbow", "value": 0},
                             {"title": "Inv Rainbow", "value": 1},
-                            {"title": "Greyscale", "value": 2},
-                            {"title": "Inv Greyscale", "value": 3},
+                            {"title": "Viridis", "value": 2},
+                            {"title": "Inferno", "value": 3},
                         ],
                     ),
                     hide_details=True,
@@ -558,18 +558,19 @@ class VTKVisualizer:
         Vuetify slider for controlling the opacity. Uses `"mesh_opacity"` for callbacks.
         """
         vuetify3.VSlider(
-            # Opacity
             v_model=("mesh_opacity", 1),
             min=0,
             max=1,
             step=0.05,
             label="Opacity",
             classes="mt-1",
+            prepend_icon="mdi-opacity",
             hide_details=True,
+            max_width=290,
             density="compact",
             thumb_label=True,
-    )
-
+        )
+        
     def level_slider(self):
         """
         Vuetify slider for rendering different tent levels of the object. Uses `"z_value"`
@@ -582,11 +583,11 @@ class VTKVisualizer:
             step=1,
             label="Level",
             classes="mt-1",
+            prepend_icon="mdi-arrow-up-down-bold",
             hide_details=True,
+            max_width=290,
             density="compact",
             thumb_label=True,
-            thumb_color="red",
-            ticks="always"
         )
 
     def set_map_colors(self):
