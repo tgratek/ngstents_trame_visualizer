@@ -7,8 +7,9 @@ encases the viewer around a single-page layout operated by the Vuetify framework
 
 ## Example Demo
 
-Contained in the `tools` directory are notebooks and a Python module that test the visualizer classes created from PyVista
-and pure Trame. After pulling down this repo and installing its dependencies, you can run the tools:
+Contained in the `/tools` directory are notebooks and a Python module that test the visualizer classes created from PyVista
+and pure Trame. After pulling down this repo and installing its dependencies with `pip install -r requirements.txt`,
+you can run the tools:
 
 - **(Remote)** Run the `pyvista_vtkvisulizer.ipynb` notebook for a cell that visualizes a VTK file using **server-side** rendering.
 - **(Local)** Run the `trame_vtkvisulizer.ipynb` notebook for a cell that visualizes a VTK file using **client-side** rendering.
@@ -17,7 +18,7 @@ and pure Trame. After pulling down this repo and installing its dependencies, yo
 
 ### Notice when Running for the First Time
 
-Processing a `vtk` file for the first time may take a while (`file.vtk` took about 20-30 seconds) before the visualizer renders.
+Processing a `vtk` file for the first time may take a while (`demo.vtk` took about 20-30 seconds) before the visualizer renders.
 Once bundles are installed and a supposed cache is generated, runtime is much faster on subsequent runs.
 
 ## Known Issues

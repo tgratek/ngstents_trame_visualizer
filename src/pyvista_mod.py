@@ -27,7 +27,7 @@ class LookupTable:
 # Main Application Class
 # -----------------------------------------------------------------------------
 class PyVistaVTKVisualizer:
-    def __init__(self, filename="test-files/file.vtk"):
+    def __init__(self, filename="test-files/demo.vtk"):
         # Setup Parameters for Plotting
         pv.global_theme.load_theme(self.setup_theme())
 
