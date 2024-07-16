@@ -50,7 +50,7 @@ class LookupTable:
 # -----------------------------------------------------------------------------
 # Main Class
 # -----------------------------------------------------------------------------
-class VTKVisualizer:
+class TrameVTKVisualizer:
     """
     The base class to be used to read in a `.vtk` file and visualize the mesh.
     Includes a base-layer (slice of the z-axis) as well as a UI to navigate between
@@ -697,5 +697,5 @@ class VTKVisualizer:
                 html.Span(tooltip)
 
 if __name__ == "__main__":
-    visualizer = VTKVisualizer()
+    visualizer = TrameVTKVisualizer()
     visualizer.server.start()
