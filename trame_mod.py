@@ -8,7 +8,6 @@ from trame_vtk.modules.vtk.serializers import configure_serializer
 
 # Required for interactor initialization
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa
-from vtkmodules.vtkRenderingAnnotation import vtkScalarBarActor
 
 # Required for rendering initialization, not necessary for
 # local rendering, but doesn't hurt to include it
@@ -82,6 +81,7 @@ class VTKVisualizer:
 
         self.render_window = vtk.vtkRenderWindow()
         self.render_window.AddRenderer(self.renderer)
+        self.render_window.OffScreenRenderingOn() # Disables the OpenGL window from opening.
 
         self.render_window_interactor = vtk.vtkRenderWindowInteractor()
         self.render_window_interactor.SetRenderWindow(self.render_window)
@@ -279,8 +279,7 @@ class VTKVisualizer:
     def setup_scalar_bar(self, array):
         scalar_bar = vtk.vtkScalarBarActor()
         scalar_bar.SetLookupTable(self.mapper.GetLookupTable())
-        # scalar_bar.SetNumberOfTableValues(7)
-        # scalar_bar.UnconstrainedFontSizeOn()
+        scalar_bar.SetWidth(0.05)
         scalar_bar.SetTitle(array["text"])
         return scalar_bar
 
@@ -463,7 +462,6 @@ class VTKVisualizer:
         threshold.SetUpperThreshold(z_value)
         threshold.Update()
 
-        # mapper = vtk.vtkDataSetMapper()
         self.mapper.SetInputConnection(threshold.GetOutputPort())
 
         self.actor.SetMapper(self.mapper)
