@@ -267,6 +267,12 @@ class VTKVisualizer:
         return base_layer
 
     def setup_axes_actor(self):
+        """
+        Creates the axes actor for the axes.
+
+        Returns:
+            vtkCubeAxesActor(): The actor to be added to the renderer.
+        """
         axes = vtk.vtkCubeAxesActor()
         axes.SetBounds(self.actor.GetBounds())
         axes.SetCamera(self.renderer.GetActiveCamera())
@@ -277,10 +283,20 @@ class VTKVisualizer:
         return axes
 
     def setup_scalar_bar(self, array):
+        """
+        Creates the scalar bar actor for the plot.
+
+        Args:
+            array (dataset_arrays): Single array from the dataset_arrays.
+
+        Returns:
+            vtkScalarBarActor(): Returns the scalar bar actor to be rendered.
+        """
         scalar_bar = vtk.vtkScalarBarActor()
         scalar_bar.SetLookupTable(self.mapper.GetLookupTable())
-        scalar_bar.SetWidth(0.05)
-        scalar_bar.SetTitle(array["text"])
+        scalar_bar.SetWidth(0.1)
+        scalar_bar.SetLabelFormat("%.1f")
+        scalar_bar.SetPosition(0.88, 0.1)
         return scalar_bar
 
     def setup_callbacks(self):
