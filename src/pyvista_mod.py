@@ -26,7 +26,7 @@ class LookupTable:
 # -----------------------------------------------------------------------------
 # Main Application Class
 # -----------------------------------------------------------------------------
-class VTKVisualizer:
+class PyVistaVTKVisualizer:
     def __init__(self, filename="test-files/file.vtk"):
         # Setup Parameters for Plotting
         pv.global_theme.load_theme(self.setup_theme())
@@ -170,7 +170,6 @@ class VTKVisualizer:
 
                     with self.drawer_card(title="Tents"):
                         self.representation_dropdown()
-                        self.test_table()
                         self.level_slider()
                 
                 with layout.content:
@@ -426,27 +425,9 @@ class VTKVisualizer:
             max=int(self.default_max),
             step=1,
             label="Level",
-            classes="mt-1",
+            classes="mt-3",
+            append_icon="mdi-menu-swap-outline",
             hide_details=True,
             dense=True,
             thumb_label=True
         )
-
-    def test_table(self):
-        with vuetify3.VRow(classes="pt-2", dense=True):
-            with vuetify3.VCol(cols="6"):
-                vuetify3.VCardTitle(
-                    "Default",
-                    classes="grey lighten-1 py-1 grey--text text--darken-3",
-                    style="user-select: none; cursor: pointer",
-                    hide_details=True,
-                    dense=True,
-                )
-            with vuetify3.VCol(cols="6"):
-                vuetify3.VCardTitle(
-                    "Default",
-                    classes="grey lighten-1 py-1 grey--text text--darken-3",
-                    style="user-select: none; cursor: pointer",
-                    hide_details=True,
-                    dense=True,
-                )

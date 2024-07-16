@@ -5,39 +5,20 @@ utilizing the libraries [PyVista](https://github.com/pyvista/pyvista) and [Trame
 This application takes a valid VTK file generated from NGS-Tents, plots the mesh using PyVista's 3D visualization capabilities, and
 encases the viewer around a single-page layout operated by the Vuetify framework made available from Trame.
 
-## Usage
+## Example Demo
 
-After pulling down the repository and installing the necessary libraries, this visualizer supports two methods of usage.
-Instantiate a variable of the `VTKVisualizer` class and either call its UI in a notebook or start a server:
+Contained in the `tools` directory are notebooks and a Python module that test the visualizer classes created from PyVista
+and pure Trame. After pulling down this repo and installing its dependencies, you can run the tools:
 
-**Local Jupyter Notebook**
-
-```python
-# vtkVisualizer.ipynb
-from pyvista_trame import VTKVisualizer
-
-visualizer = VTKVisualizer(filename="test-files/file.vtk")
-await visualizer.ui.ready
-visualizer.ui
-```
-
-**Local Server Rendering**
-
-```python
-# vtkVisualizer.py
-from pyvista_trame import VTKVisualizer
-
-visualizer = VTKVisualizer(filename="test-files/file.vtk")
-visualizer.server.start()
-```
-
-This application is mainly intended for conference or presentation settings, leading to an emphasis on local environment usage.
-Fully remote environment usage is not tested and likely not supported.
+- **(Remote)** Run the `pyvista_vtkvisulizer.ipynb` notebook for a cell that visualizes a VTK file using **server-side** rendering.
+- **(Local)** Run the `trame_vtkvisulizer.ipynb` notebook for a cell that visualizes a VTK file using **client-side** rendering.
+- **(Browser)** Run `python3 tools/vtkvisualizer.py` to start up a localhost server of the PyVista visualizer.
+  - Optionally, you can comment the import and uses of `PyVistaVTKVisualizer` and uncomment the `TrameVTKVisualizer` lines to test the client-side focused app on a browser server.
 
 ### Notice when Running for the First Time
 
 Processing a `vtk` file for the first time may take a while (`file.vtk` took about 20-30 seconds) before the visualizer renders.
-Once a supposed cache is generated, runtime is much faster on subsequent runs.
+Once bundles are installed and a supposed cache is generated, runtime is much faster on subsequent runs.
 
 ## Known Issues
 
