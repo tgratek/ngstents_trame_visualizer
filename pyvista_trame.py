@@ -73,6 +73,7 @@ class VTKVisualizer:
         # State defaults (triggers callback functions)
         self.state.mesh_representation = Representation.Surface
         self.state.z_value = int(self.default_min)
+        self.state.opacity = 1.0  
 
         # Build UI
         self.ui
@@ -172,6 +173,7 @@ class VTKVisualizer:
                         self.representation_dropdown()
                         self.test_table()
                         self.level_slider()
+                        self.opacity_slider()  
                 
                 with layout.content:
                     with vuetify3.VContainer(fluid=True, classes="pa-0 fill-height"):
@@ -261,7 +263,8 @@ class VTKVisualizer:
             scalars="tentlevel",
             scalar_bar_args=self.sargs,
             cmap="rainbow",
-            name="z-layer"
+            name="z-layer",
+            opacity=self.state.opacity  
         )
 
         # Shape frame to stack tent layers on
@@ -316,14 +319,25 @@ class VTKVisualizer:
 
         z_layer = self.mesh.threshold(value=(self.default_min, z_value), scalars='tentlevel')
 
-        # Replace existing zActor with threshold
+        
         self.zActor = self.plotter.add_mesh(z_layer, scalars='tentlevel', scalar_bar_args=self.sargs,
-                                            cmap='rainbow', clim=(self.default_min, self.default_max), 
-                                            opacity=1, style=representation, show_edges=edges_enabled,
-                                            name="z-layer")
+                                        cmap='rainbow', clim=(self.default_min, self.default_max), 
+                                        opacity=self.state.opacity,  # Updated opacity value
+                                        style=representation, show_edges=edges_enabled,
+                                        name="z-layer")
 
         self.update_representation(self.state.mesh_representation)
         self.plotter.render()
+    
+    def update_opacity(self, opacity):
+        """
+        Update the opacity of the z-layer.
+
+        Args:
+            opacity (float): The opacity value from the slider.
+        """
+        self.zActor.prop.opacity = opacity
+        
 
     def setup_callbacks(self):
         """
@@ -349,6 +363,17 @@ class VTKVisualizer:
                 z_value (int): The new layer to be drawn to.
             """
             self.update_zlayer(z_value)
+            self.ctrl.view_update()
+            
+        @self.state.change("opacity")
+        def update_opacity(opacity, **kwargs):
+            """
+            State change callback to update the opacity of the z-layer.
+
+            Args:
+                opacity (float): The new opacity value.
+            """
+            self.update_opacity(opacity)
             self.ctrl.view_update()
 
     def light_dark_toggle(self):
@@ -426,6 +451,22 @@ class VTKVisualizer:
             max=int(self.default_max),
             step=1,
             label="Level",
+            classes="mt-1",
+            hide_details=True,
+            dense=True,
+            thumb_label=True
+        )
+    
+    def opacity_slider(self):
+        """
+        The slider UI for adjusting the opacity of the z-layer.
+        """
+        vuetify3.VSlider(
+            v_model=("opacity", 1.0),
+            min=0.0,
+            max=1.0,
+            step=0.01,
+            label="Opacity",
             classes="mt-1",
             hide_details=True,
             dense=True,
