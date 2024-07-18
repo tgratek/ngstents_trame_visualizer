@@ -16,8 +16,8 @@ sys.path.append(os.path.join(current_dir, '../src'))
     As such, the visualizers should not be used together, and should only
     be imported together if done so conditionally.
 """
-from pyvista_mod import PyVistaVTKVisualizer
-# from trame_mod import TrameVTKVisualizer
+from pyvista_visualizer import PyVistaVTKVisualizer
+# from trame_visualizer import TrameVTKVisualizer
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 

@@ -5,9 +5,23 @@ utilizing the libraries [PyVista](https://github.com/pyvista/pyvista) and [Trame
 This application takes a valid VTK file generated from NGS-Tents, plots the mesh using PyVista's 3D visualization capabilities, and
 encases the viewer around a single-page layout operated by the Vuetify framework made available from Trame.
 
+## Application
+
+Two classes are provided: `PyVistaVTKVisualizer` and `TrameVTKVisualizer`. They are both applications that serve the same
+purpose of wrapping a UI around the mesh visualization, but utilize different libraries and default **rendering methods**.
+
+- `PyVistaVTKVisualizer` starts in remote server-side rendering by default. PyVista struggles with its local rendering
+  due to desyncing issues, but they offer a very stable remote environment with increased interactivity, at the cost of slower performance. PyVista's simplistic Pythonic API to VTK allows for easier extendability due to needing little to no prior
+  knowledge of VTK.
+- `TrameVTKVisualizer` starts in local client-side rendering by default. This application exists to provide a tolerable method
+  to view meshes using client-side rendering, a naturally faster process that uses local resources. Trame relies on direct calls to the VTK API, resulting in more complex and harder to maintain code.
+
+**Do not import both classes in a given module**, unless done so conditionally. PyVista uses Trame as a backend, so importing
+both classes can cause conflicts. By default, both applications utilize the same server, so they cannot be used in conjuction. Use one or the other when visualizing a VTK file through a Jupyter Notebook or Python module.
+
 ## Example Demo
 
-Contained in the `/tools` directory are notebooks and a Python module that test the visualizer classes created from PyVista
+Contained in the `/tools_demo` directory are notebooks and a Python module that test the visualizer classes created from PyVista
 and pure Trame. After pulling down this repo and installing its dependencies with `pip install -r requirements.txt`,
 you can run the tools:
 
@@ -18,8 +32,8 @@ you can run the tools:
 
 ### Notice when Running for the First Time
 
-Processing a `vtk` file for the first time may take a while (`demo.vtk` took about 20-30 seconds) before the visualizer renders.
-Once bundles are installed and a supposed cache is generated, runtime is much faster on subsequent runs.
+First execution of either of the applications may take a while (rendering `demo.vtk` took about 20-30 seconds on PyVista).  
+Once the application downloads the necessary VTK resources, subsequently runtime is much faster.
 
 ## Known Issues
 
