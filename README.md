@@ -27,7 +27,7 @@ you can run the tools:
 
 - **(Remote)** Run the `pyvista_vtkvisulizer.ipynb` notebook for a cell that visualizes a VTK file using **server-side** rendering.
 - **(Local)** Run the `trame_vtkvisulizer.ipynb` notebook for a cell that visualizes a VTK file using **client-side** rendering.
-- **(Browser)** Run `python3 tools/vtkvisualizer.py` to start up a localhost server of the PyVista visualizer.
+- **(Browser)** Run `python3 tools_demo/vtkvisualizer.py` to start up a localhost server of the PyVista visualizer.
   - Optionally, you can comment the import and uses of `PyVistaVTKVisualizer` and uncomment the `TrameVTKVisualizer` lines to test the client-side focused app on a browser server.
 
 ### Notice when Running for the First Time
