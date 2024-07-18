@@ -169,7 +169,7 @@ class PyVistaVTKVisualizer:
                     drawer.width = 325
                     vuetify3.VDivider(classes="mb-2")
 
-                    with self.drawer_card(title="Tents"):
+                    with self.drawer_card(title="Controls"):
                         self.representation_dropdown()
                         self.level_slider()
                         self.opacity_slider()  
@@ -468,6 +468,7 @@ class PyVistaVTKVisualizer:
             step=0.01,
             label="Opacity",
             classes="mt-1",
+            append_icon="mdi-opacity",
             hide_details=True,
             dense=True,
             thumb_label=True
