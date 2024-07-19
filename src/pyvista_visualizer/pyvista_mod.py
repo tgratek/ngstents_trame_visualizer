@@ -17,11 +17,13 @@ class Representation:
     Wireframe = "wireframe"
     Surface = "surface"
 
-class LookupTable:
-    Rainbow = 0
-    Inverted_Rainbow = 1
-    Greyscale = 2
-    Inverted_Greyscale = 3
+class ColorMap:
+    Rainbow = "rainbow"
+    Rainbow_r = "rainbow_r"
+    Viridis = "viridis"
+    Plasma = "plasma"
+    RedBlue = "RdBu"
+    Seismic = "seismic"
 
 # -----------------------------------------------------------------------------
 # Main Application Class
@@ -74,6 +76,8 @@ class PyVistaVTKVisualizer:
         self.state.mesh_representation = Representation.Surface
         self.state.z_value = int(self.default_min)
         self.state.opacity = 1.0  
+        self.state.colormap = ColorMap.Rainbow
+
 
         # Build UI
         self.ui
@@ -171,9 +175,11 @@ class PyVistaVTKVisualizer:
 
                     with self.drawer_card(title="Controls"):
                         self.representation_dropdown()
+                        self.colormap_dropdown() 
                         self.level_slider()
                         self.opacity_slider()  
-                
+                        
+ 
                 with layout.content:
                     with vuetify3.VContainer(fluid=True, classes="pa-0 fill-height"):
                         view = plotter_ui(self.plotter, mode='trame', default_server_rendering=True, add_menu=False)
@@ -256,12 +262,14 @@ class PyVistaVTKVisualizer:
         slice_mesh.set_active_scalars('tentlevel')
         slice = slice_mesh.slice_along_axis(n=1, axis='z')
 
+        colormap = self.state.colormap
+
         # The tent layers to stack upon
         self.zActor = self.plotter.add_mesh(
             self.mesh.flip_z(None),
             scalars="tentlevel",
             scalar_bar_args=self.sargs,
-            cmap="rainbow",
+            cmap=colormap,
             name="z-layer",
             opacity=self.state.opacity  
         )
@@ -315,12 +323,13 @@ class PyVistaVTKVisualizer:
         # Properties to maintain as mesh is re-rendered
         representation = self.state.mesh_representation
         edges_enabled = self.state[f'{self.plotter_id}_edge_visibility']
+        colormap = self.state.colormap
 
         z_layer = self.mesh.threshold(value=(self.default_min, z_value), scalars='tentlevel')
 
         
         self.zActor = self.plotter.add_mesh(z_layer, scalars='tentlevel', scalar_bar_args=self.sargs,
-                                        cmap='rainbow', clim=(self.default_min, self.default_max), 
+                                        cmap=colormap, clim=(self.default_min, self.default_max), 
                                         opacity=self.state.opacity,  # Updated opacity value
                                         style=representation, show_edges=edges_enabled,
                                         name="z-layer")
@@ -351,6 +360,17 @@ class PyVistaVTKVisualizer:
                 mesh_representation (int): The new representation mode.
             """
             self.update_representation(mesh_representation)
+            self.ctrl.view_update()
+
+        @self.state.change("colormap")
+        def update_colormap(colormap, **kwargs):
+            """
+            State change callback to update the colormap of the z-layer.
+
+            Args:
+            colormap (str): The new colormap.
+            """
+            self.update_zlayer(self.state.z_value)
             self.ctrl.view_update()
 
         @self.state.change("z_value")
@@ -472,6 +492,29 @@ class PyVistaVTKVisualizer:
             hide_details=True,
             dense=True,
             thumb_label=True
+        )
+    def colormap_dropdown(self):
+        """
+        The dropdown UI for selecting different colormaps.
+        """
+        vuetify3.VSelect(
+            v_model=("colormap", ColorMap.Rainbow),
+            items=(
+                'colormaps',
+                [
+                    {"title": "Rainbow", "value": ColorMap.Rainbow},
+                    {"title": "Inverted Rainbow", "value": ColorMap.Rainbow_r},
+                    {"title": "Viridis", "value": ColorMap.Viridis},
+                    {"title": "Plasma", "value": ColorMap.Plasma},
+                    {"title": "Red Blue", "value": ColorMap.RedBlue},
+                    {"title": "Seismic", "value": ColorMap.Seismic}
+                ],
+            ),
+            label="Color",
+            hide_details=True,
+            dense=True,
+            outlined=True,
+            classes="pt-1",
         )
 
     def test_table(self):
