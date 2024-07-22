@@ -102,9 +102,6 @@ class TrameVTKVisualizer:
         self._default_max = None
         self._ui = None
 
-        # Theme of the Vuetify Interface
-        self.state.theme = "light"
-
         # Process Mesh and Setup UI
         self.extract_data_arrays()
         self.set_map_colors()
@@ -281,9 +278,12 @@ class TrameVTKVisualizer:
             vtkCubeAxesActor(): The actor to be added to the renderer.
         """
         axes = vtk.vtkCubeAxesActor()
-        axes.DrawXInnerGridlinesOn() # Unsure on this as they seem to have height
         # axes.DrawXGridpolysOn() # Adds a poly section
-        axes.DrawYInnerGridlinesOn() # Unsure on this as they seem to have height
+        # axes.DrawYGridpolysOn()
+        # axes.DrawXInnerGridlinesOn() # Unsure on this as they seem to have height
+        # axes.DrawYInnerGridlinesOn() # Unsure on this as they seem to have height
+        # axes.DrawXGridlinesOn()
+        # axes.DrawYGridlinesOn()
         axes.SetBounds(self.actor.GetBounds())
         axes.SetCamera(self.renderer.GetActiveCamera())
         axes.SetXLabelFormat("%.1e")
