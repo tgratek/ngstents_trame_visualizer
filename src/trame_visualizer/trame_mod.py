@@ -17,6 +17,12 @@ configure_serializer(encode_lut=True, skip_light=False)
 # -----------------------------------------------------------------------------
 # Constants
 # -----------------------------------------------------------------------------
+# RGB Colors
+COLOR_BLACK = (0.0, 0.0, 0.0)
+COLOR_WHITE = (1.0, 1.0, 1.0)
+COLOR_LIGHT = (0.9, 0.9, 0.9)
+COLOR_DARK = (0.1, 0.1, 0.1)
+
 class Representation:
     """
     Constants for different types of representations of VTK actors.
@@ -114,6 +120,7 @@ class TrameVTKVisualizer:
         self.state.mesh_representation = Representation.SurfaceWithEdges
         self.state.z_value = self.default_min
         self.state.cube_axes_visibility = True
+        self.state.theme = "light"
 
         # Build UI
         self.ui
@@ -274,6 +281,9 @@ class TrameVTKVisualizer:
             vtkCubeAxesActor(): The actor to be added to the renderer.
         """
         axes = vtk.vtkCubeAxesActor()
+        axes.DrawXInnerGridlinesOn() # Unsure on this as they seem to have height
+        # axes.DrawXGridpolysOn() # Adds a poly section
+        axes.DrawYInnerGridlinesOn() # Unsure on this as they seem to have height
         axes.SetBounds(self.actor.GetBounds())
         axes.SetCamera(self.renderer.GetActiveCamera())
         axes.SetXLabelFormat("%.1e")
@@ -362,6 +372,54 @@ class TrameVTKVisualizer:
                 cube_axes_visibility (bool): True: visibile, False: hidden.
             """
             self.axes.SetVisibility(cube_axes_visibility)
+            self.ctrl.view_update()
+        
+        @self.state.change("theme")
+        def update_theme(theme, **kwargs):
+            """
+            Adjusts the color scheme of the renderer background, fonts, and the axes.
+
+            Args:
+                theme ("light"/"dark"): Light or Dark theme from toggling associated button. 
+            """
+            
+            def set_colors(background_color, axis_color, gridline_color, text_color):
+                """
+                Helper function to limit lines of code.
+
+                Args:
+                    background_color (tuple[float, float, float]): RGB values as a tuple.
+                    axis_color (tuple[float, float, float]): RGB values as a tuple.
+                    gridline_color (tuple[float, float, float]): RGB values as a tuple.
+                    text_color (tuple[float, float, float]): RGB values as a tuple.
+                """
+                # Background Color
+                self.renderer.SetBackground(*background_color)
+                # Axes Lines Color
+                self.axes.GetXAxesLinesProperty().SetColor(*axis_color)
+                self.axes.GetYAxesLinesProperty().SetColor(*axis_color)
+                self.axes.GetZAxesLinesProperty().SetColor(*axis_color)
+                # Axes Inner Lines Color
+                self.axes.GetXAxesInnerGridlinesProperty().SetColor(*gridline_color)
+                self.axes.GetYAxesInnerGridlinesProperty().SetColor(*gridline_color)
+                self.axes.GetZAxesInnerGridlinesProperty().SetColor(*gridline_color)
+                # Axes Title Color
+                self.axes.GetTitleTextProperty(0).SetColor(*text_color)
+                self.axes.GetLabelTextProperty(0).SetColor(*text_color)
+                self.axes.GetLabelTextProperty(1).SetColor(*text_color)
+                self.axes.GetTitleTextProperty(1).SetColor(*text_color)
+                self.axes.GetLabelTextProperty(2).SetColor(*text_color)
+                self.axes.GetTitleTextProperty(2).SetColor(*text_color)
+                # Scalar Bar Color
+                self.scalar_bar.GetTitleTextProperty().SetColor(*text_color)
+                self.scalar_bar.GetLabelTextProperty().SetColor(*text_color)
+            
+            if theme == "light":
+                set_colors(COLOR_LIGHT, COLOR_BLACK, COLOR_BLACK, COLOR_BLACK)
+                
+            else:
+                set_colors(COLOR_DARK, COLOR_WHITE, COLOR_WHITE, COLOR_WHITE)
+                
             self.ctrl.view_update()
 
     def update_representation(self, mode):
