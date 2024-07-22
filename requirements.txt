@@ -12,7 +12,7 @@ asttokens==2.4.1
     # via stack-data
 attrs==23.2.0
     # via aiohttp
-certifi==2024.6.2
+certifi==2024.7.4
     # via requests
 charset-normalizer==3.3.2
     # via requests
@@ -24,13 +24,13 @@ contourpy==1.2.1
     # via matplotlib
 cycler==0.12.1
     # via matplotlib
-debugpy==1.8.1
+debugpy==1.8.2
     # via ipykernel
 decorator==5.1.1
     # via ipython
 executing==2.0.1
     # via stack-data
-fonttools==4.51.0
+fonttools==4.53.1
     # via matplotlib
 frozenlist==1.4.1
     # via
@@ -40,13 +40,13 @@ idna==3.7
     # via
     #   requests
     #   yarl
-ipykernel==6.29.4
+ipykernel==6.29.5
     # via -r .\requirements.in
-ipython==8.24.0
+ipython==8.26.0
     # via ipykernel
 jedi==0.19.1
     # via ipython
-jupyter-client==8.6.1
+jupyter-client==8.6.2
     # via ipykernel
 jupyter-core==5.7.2
     # via
@@ -54,7 +54,7 @@ jupyter-core==5.7.2
     #   jupyter-client
 kiwisolver==1.4.5
     # via matplotlib
-matplotlib==3.8.4
+matplotlib==3.9.1
     # via
     #   pyvista
     #   vtk
@@ -62,7 +62,7 @@ matplotlib-inline==0.1.7
     # via
     #   ipykernel
     #   ipython
-more-itertools==10.2.0
+more-itertools==10.3.0
     # via trame-server
 msgpack==1.0.8
     # via wslink
@@ -72,33 +72,33 @@ multidict==6.0.5
     #   yarl
 nest-asyncio==1.6.0
     # via ipykernel
-numpy==1.26.4
+numpy==2.0.1
     # via
     #   contourpy
     #   matplotlib
     #   pyvista
-packaging==24.0
+packaging==24.1
     # via
     #   ipykernel
     #   matplotlib
     #   pooch
 parso==0.8.4
     # via jedi
-pillow==10.3.0
+pillow==10.4.0
     # via
     #   matplotlib
     #   pyvista
-platformdirs==4.2.1
+platformdirs==4.2.2
     # via
     #   jupyter-core
     #   pooch
 pooch==1.8.2
     # via pyvista
-prompt-toolkit==3.0.43
+prompt-toolkit==3.0.47
     # via ipython
-psutil==5.9.8
+psutil==6.0.0
     # via ipykernel
-pure-eval==0.2.2
+pure-eval==0.2.3
     # via stack-data
 pygments==2.18.0
     # via ipython
@@ -108,7 +108,7 @@ python-dateutil==2.9.0.post0
     # via
     #   jupyter-client
     #   matplotlib
-pyvista==0.44.0
+pyvista==0.44.1
     # via -r .\requirements.in
 pywin32==306
     # via jupyter-core
@@ -126,7 +126,7 @@ six==1.16.0
     #   python-dateutil
 stack-data==0.6.3
     # via ipython
-tornado==6.4
+tornado==6.4.1
     # via
     #   ipykernel
     #   jupyter-client
@@ -138,18 +138,18 @@ traitlets==5.14.3
     #   jupyter-client
     #   jupyter-core
     #   matplotlib-inline
-trame==3.6.0
+trame==3.6.3
     # via -r .\requirements.in
-trame-client==3.0.2
+trame-client==3.2.1
     # via
     #   trame
     #   trame-vtk
     #   trame-vuetify
-trame-server==3.0.0
+trame-server==3.0.3
     # via trame
-trame-vtk==2.8.8
+trame-vtk==2.8.9
     # via -r .\requirements.in
-trame-vuetify==2.5.0
+trame-vuetify==2.6.2
     # via -r .\requirements.in
 typing-extensions==4.12.2
     # via pyvista
@@ -159,7 +159,7 @@ vtk==9.3.1
     # via pyvista
 wcwidth==0.2.13
     # via prompt-toolkit
-wslink==2.0.2
+wslink==2.1.1
     # via trame-server
 yarl==1.9.4
     # via aiohttp
