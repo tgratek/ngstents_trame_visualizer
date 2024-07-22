@@ -45,20 +45,30 @@ class PyVistaVTKVisualizer:
         self._dataset_arrays = []
         self._baseActor = None
         self._zActor = None
+        self._axesActor = None
         self._default_array = None
         self._default_min = None
         self._default_max = None
         self._ui = None
         # Scalar Bar Customization
         self._sargs = dict(
-                        title="Tent Level",
-                        fmt="%.0f",
-                        font_family="arial",
-                        vertical=True,
-                        height=.8,
-                        width=.05,
-                        position_y=0.1
-                    )
+            title="Tent Level",
+            fmt="%.0f",
+            font_family="arial",
+            vertical=True,
+            height=.8,
+            width=.05,
+            position_y=0.1
+        )
+        # Axes Widget Customization
+        self._axes_args = dict(
+            line_width=5,
+            cone_radius=0.6,
+            shaft_length=0.7,
+            tip_length=0.3,
+            ambient=0.5,
+            label_size=(0.4, 0.16),
+        )
         # Needed for extracting state values provided by PyVista's ui_controls
         # https://github.com/pyvista/pyvista/blob/main/pyvista/trame/ui/base_viewer.py#L45
         self._plotter_id = self.plotter._id_name
@@ -115,6 +125,14 @@ class PyVistaVTKVisualizer:
         self._zActor = value
     
     @property
+    def axesActor(self):
+        return self._axesActor
+    
+    @axesActor.setter
+    def axesActor(self, value: pv.AxesActor):
+        self._axesActor = value
+    
+    @property
     def dataset_arrays(self):
         return self._dataset_arrays
 
@@ -137,6 +155,10 @@ class PyVistaVTKVisualizer:
     @property
     def sargs(self):
         return self._sargs
+    
+    @property
+    def axes_args(self):
+        return self._axes_args
     
     @property
     def plotter_id(self):
@@ -213,14 +235,7 @@ class PyVistaVTKVisualizer:
         self.plotter.theme.font.size = 12
 
         # Customize XYZ Axes Widget
-        self.plotter.add_axes(
-            line_width=5,
-            cone_radius=0.6,
-            shaft_length=0.7,
-            tip_length=0.3,
-            ambient=0.5,
-            label_size=(0.4, 0.16),
-        )
+        self.axesActor = self.plotter.add_axes(**self.axes_args)
 
     def extract_data_arrays(self):
         """
@@ -324,14 +339,14 @@ class PyVistaVTKVisualizer:
         representation = self.state.mesh_representation
         edges_enabled = self.state[f'{self.plotter_id}_edge_visibility']
         colormap = self.state.colormap
+        opacity = self.state.opacity
 
         z_layer = self.mesh.threshold(value=(self.default_min, z_value), scalars='tentlevel')
 
         
         self.zActor = self.plotter.add_mesh(z_layer, scalars='tentlevel', scalar_bar_args=self.sargs,
                                         cmap=colormap, clim=(self.default_min, self.default_max), 
-                                        opacity=self.state.opacity,  # Updated opacity value
-                                        style=representation, show_edges=edges_enabled,
+                                        opacity=opacity, style=representation, show_edges=edges_enabled,
                                         name="z-layer")
 
         self.update_representation(self.state.mesh_representation)
@@ -345,7 +360,107 @@ class PyVistaVTKVisualizer:
             opacity (float): The opacity value from the slider.
         """
         self.zActor.prop.opacity = opacity
+    
+    def update_light_dark(self):
+        if (self.state.theme == "light"):
+            self.plotter.set_background("snow")
+
+            if self.plotter.theme.font.color == "white":
+                self.plotter.theme.font.color = "black"
+
+                # Edits the plotter options that are toggled/on display
+                self.set_plotting_label_colors([0, 0, 0])
+
+        elif (self.state.theme == "dark"):
+            self.plotter.set_background("paraview")
+
+            if self.plotter.theme.font.color == "black":
+                self.plotter.theme.font.color = "white"
+
+                # Edits the plotter options that are toggled/on display
+                self.set_plotting_label_colors([1, 1, 1])
+
+        self.plotter.render()
+
+    def set_plotting_label_colors(self, rgb):
+        """
+        Sets the text colors of visualization plotting options (e.g. scalar bar labels, XYZ axes, etc.)
+        to the provided color.
+
+        PyVista does not expose the ability to edit the text properties of many plotter options. This method
+        captures the relevant VTK class objects (e.g. vtkScalarBarActor, vtkAxesActor) and applies operations,
+        directly, avoiding the need to re-render the actors.
+
+        Args:
+            rgb (double[3]): The array of RGB values, each between 0-1, to set the overall color of the text.
+        """
+
+        # Scalar Bar Labels
+        # vtkScalarBarActor . vtkTextProperty . Method of vtkTextProperty class
+        scalar_bar: vtk.vtkScalarBarActor = self.plotter.scalar_bars["Tent Level"]
+        scalar_bar.GetTitleTextProperty().SetColor(rgb)
+        scalar_bar.GetLabelTextProperty().SetColor(rgb)
+
+        # Axes Widget
+        # vtkAxesActor . vtkCaptionActor2D . vtkTextProperty . Method of vtkTextProperty class
+        self.axesActor.GetXAxisCaptionActor2D().GetCaptionTextProperty().SetColor(rgb)
+        self.axesActor.GetYAxisCaptionActor2D().GetCaptionTextProperty().SetColor(rgb)
+        self.axesActor.GetZAxisCaptionActor2D().GetCaptionTextProperty().SetColor(rgb)
+
+        # Axes Ruler Grid
+        self.set_axes_ruler_colors(rgb)
+
+    def set_axes_ruler_colors(self, rgb):
+        """
+        Sets the colors of XYZ axes lines, gridlines, and text to the provided color. Only performs
+        the color transformation if the ruler grid exists.
+
+        PyVista does not expose the ability to edit the properties of this axes ruler. Since the axes
+        ruler is expected to be of type vtkCubeAxesActor, this method applies operations directly,
+        avoiding the need to remove and re-add the grid.
         
+        Args:
+            rgb (double[3]): The array of RGB values, each between 0-1, to set the overall color of the text.
+        """
+        # PyVista's ui_controls indicator if ruler is toggled on
+        if not self.state[f'{self.plotter_id}_grid_visibility']:
+            return
+
+        # vtkCubeAxesActor is used to draw axes and labels for the input data bounds
+        cube_axes_actor = None
+        # All other possible actors in scene are of type vtkOpenGLActor (baseActor, zActor, and bounding box outline)
+        for actor in self.plotter.renderer.GetActors():
+            if isinstance(actor, vtk.vtkCubeAxesActor):
+                cube_axes_actor = actor
+
+        # Only need to change colors if the actor exists ("Toggle ruler" is ON)
+        if not cube_axes_actor:
+            return
+
+        # Axes Labels and Title
+        # vtkCubeAxesActor . vtkTextProperty . Method of vtkTextProperty class
+        cube_axes_actor.GetTitleTextProperty(0).SetColor(rgb)  # X Axis Title
+        cube_axes_actor.GetLabelTextProperty(0).SetColor(rgb)  # X Axis Labels
+        cube_axes_actor.GetTitleTextProperty(1).SetColor(rgb)  # Y Axis Title
+        cube_axes_actor.GetLabelTextProperty(1).SetColor(rgb)  # Y Axis Labels
+        cube_axes_actor.GetTitleTextProperty(2).SetColor(rgb)  # Z Axis Title
+        cube_axes_actor.GetLabelTextProperty(2).SetColor(rgb)  # Z Axis Labels
+
+        # Outer Grid Lines
+        # vtkCubeAxesActor . vtkProperty . Method of vtkProperty class
+        cube_axes_actor.GetXAxesLinesProperty().SetColor(rgb)
+        cube_axes_actor.GetYAxesLinesProperty().SetColor(rgb)
+        cube_axes_actor.GetZAxesLinesProperty().SetColor(rgb)
+
+        # Inner Grid Lines
+        cube_axes_actor.GetXAxesGridlinesProperty().SetColor(rgb)
+        cube_axes_actor.GetYAxesGridlinesProperty().SetColor(rgb)
+        cube_axes_actor.GetZAxesGridlinesProperty().SetColor(rgb)
+
+        # Connecting Lines
+        cube_axes_actor.GetXAxesInnerGridlinesProperty().SetColor(rgb)
+        cube_axes_actor.GetYAxesInnerGridlinesProperty().SetColor(rgb)
+        cube_axes_actor.GetZAxesInnerGridlinesProperty().SetColor(rgb)
 
     def setup_callbacks(self):
         """
@@ -393,6 +508,11 @@ class PyVistaVTKVisualizer:
                 opacity (float): The new opacity value.
             """
             self.update_opacity(opacity)
+            self.ctrl.view_update()
+        
+        @self.state.change("theme")
+        def update_theme(**kwargs):
+            self.update_light_dark()
             self.ctrl.view_update()
 
     def light_dark_toggle(self):
@@ -493,6 +613,7 @@ class PyVistaVTKVisualizer:
             dense=True,
             thumb_label=True
         )
+
     def colormap_dropdown(self):
         """
         The dropdown UI for selecting different colormaps.
