@@ -110,8 +110,6 @@ python-dateutil==2.9.0.post0
     #   matplotlib
 pyvista==0.44.1
     # via -r .\requirements.in
-pywin32==306
-    # via jupyter-core
 pyzmq==26.0.3
     # via
     #   ipykernel
