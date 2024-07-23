@@ -200,7 +200,7 @@ class TrameVTKVisualizer:
                         view = trame_vtk.VtkRemoteLocalView(
                             self.render_window,
                             namespace="view",
-                            mode="remote",
+                            mode="local",
                             interactive_ratio=1,
                             interactive_quality=100
                         )
