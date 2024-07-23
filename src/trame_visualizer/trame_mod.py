@@ -117,7 +117,7 @@ class TrameVTKVisualizer:
         self.renderer.AddActor(self.axes)
 
         # State defaults (triggers callback functions)
-        self.state.mesh_representation = Representation.SurfaceWithEdges
+        self.state.mesh_representation = Representation.Surface
         self.state.z_value = self.default_min
         self.state.cube_axes_visibility = True
         self.state.theme = "light"
@@ -186,12 +186,13 @@ class TrameVTKVisualizer:
                 # Side Drawer Components
                 with layout.drawer as drawer:
                     drawer.width = 325
-                    self.drawer_card(title="Controls")
-                    self.representation_dropdown()
-                    self.color_map()
-                    with vuetify3.VContainer(fluid=True, classes="pa-4"):
-                        self.opacity_slider()
+                    vuetify3.VDivider(classes="mb-2")
+                    
+                    with self.drawer_card(title="Controls"):
+                        self.representation_dropdown()
+                        self.color_map()
                         self.level_slider()
+                        self.opacity_slider()
 
                 # Content Area
                 with layout.content:
