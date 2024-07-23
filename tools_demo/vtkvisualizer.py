@@ -16,8 +16,8 @@ sys.path.append(os.path.join(current_dir, '../src'))
     As such, the visualizers should not be used together, and should only
     be imported together if done so conditionally.
 """
-from pyvista_visualizer import PyVistaVTKVisualizer
-# from trame_visualizer import TrameVTKVisualizer
+# from pyvista_visualizer import PyVistaVTKVisualizer
+from trame_visualizer import TrameVTKVisualizer
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -25,8 +25,8 @@ try:
     # TODO: Argument parsing to choose which visualizer to import
     # --port #### will open the instance on the given port.
     
-    visualizer = PyVistaVTKVisualizer(filename=os.path.join(ROOT_DIR, "test-files/demo.vtk"))
-    # visualizer = TrameVTKVisualizer(filename=os.path.join(ROOT_DIR, "test-files/demo.vtk"))
+    # visualizer = PyVistaVTKVisualizer(filename=os.path.join(ROOT_DIR, "test-files/demo.vtk"))
+    visualizer = TrameVTKVisualizer(filename=os.path.join(ROOT_DIR, "test-files/demo.vtk"))
 
     visualizer.server.start()
 
