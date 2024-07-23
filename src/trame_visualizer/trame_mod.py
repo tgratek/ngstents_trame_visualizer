@@ -5,6 +5,7 @@ from trame.app import get_server
 from trame.ui.vuetify3 import SinglePageWithDrawerLayout
 from trame.widgets import html, vuetify3, vtk as trame_vtk
 from trame_vtk.modules.vtk.serializers import configure_serializer
+import matplotlib.cm as cmap
 
 # Required for interactor initialization
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa
@@ -45,7 +46,9 @@ class LookupTable:
     Rainbow = 0
     Inverted_Rainbow = 1
     Viridis = 2
-    Inferno = 3
+    Plasma = 3
+    RedBlue = 4
+    Seismic = 5
 
 # -----------------------------------------------------------------------------
 # Main Class
@@ -391,6 +394,20 @@ class TrameVTKVisualizer:
             
         self.ctrl.view_update()
 
+    def apply_cmap(self, lut, cmap_name):
+        """
+        Applies a color map from matplotlib.cm to the LookUpTable (lut).
+
+        Args:
+            lut (self.actor.GetMapper().GetLookUpTable()): Lookup table for the actor to place colors onto.
+            cmap_name (str): Name of the desired color map, based from matplotlib cmaps.
+        """
+        map = cmap.get_cmap(cmap_name)
+        for i in range(lut.GetNumberOfTableValues()):
+            color = map(i / lut.GetNumberOfTableValues())
+            lut.SetTableValue(i, *color)
+        lut.Build()
+
     def update_color_preset(self, preset):
         """
         Apply a color lookup table preset to an actor.
@@ -400,21 +417,17 @@ class TrameVTKVisualizer:
         """
         lut = self.actor.GetMapper().GetLookupTable()
         if preset == LookupTable.Rainbow:
-            lut.SetHueRange(0.666, 0.0)
-            lut.SetSaturationRange(1.0, 1.0)
-            lut.SetValueRange(1.0, 1.0)
+            self.apply_cmap(lut, "rainbow")
         elif preset == LookupTable.Inverted_Rainbow:
-            lut.SetHueRange(0.0, 0.666)
-            lut.SetSaturationRange(1.0, 1.0)
-            lut.SetValueRange(1.0, 1.0)
-        elif preset == LookupTable.Viridis: # WIP
-            lut.SetHueRange(0.85, 0.12)
-            lut.SetSaturationRange(1.0, 1.0)
-            lut.SetValueRange(0.25, 1.0)
-        elif preset == LookupTable.Inferno: # WIP
-            lut.SetHueRange(0.00, 0.2)
-            lut.SetSaturationRange(1.0, 1.0)
-            lut.SetValueRange(0.2, 1.0)
+            self.apply_cmap(lut, "rainbow_r")
+        elif preset == LookupTable.Viridis:
+            self.apply_cmap(lut, "viridis")
+        elif preset == LookupTable.Plasma:
+            self.apply_cmap(lut, "plasma")
+        elif preset == LookupTable.RedBlue:
+            self.apply_cmap(lut, "RdBu")
+        elif preset == LookupTable.Seismic:
+            self.apply_cmap(lut, "seismic")
         lut.Build()
         self.ctrl.view_update()
 
@@ -560,7 +573,9 @@ class TrameVTKVisualizer:
                             {"title": "Rainbow", "value": 0},
                             {"title": "Inv Rainbow", "value": 1},
                             {"title": "Viridis", "value": 2},
-                            {"title": "Inferno", "value": 3},
+                            {"title": "Plasma", "value": 3},
+                            {"title": "Red Blue", "value": 4},
+                            {"title": "Seismic", "value": 5},
                         ],
                     ),
                     hide_details=True,
