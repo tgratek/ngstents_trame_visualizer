@@ -270,7 +270,7 @@ class TrameVTKVisualizer:
         base_layer.SetMapper(cutter_mapper)
         base_layer.GetProperty().SetColor(0.15, 0.9, 0.15)
         base_layer.GetProperty().SetOpacity(0.7)
-        base_layer.GetProperty().SetEdgeVisibility(1)
+        # base_layer.GetProperty().SetEdgeVisibility(1) # To match PyVista's base layer, don't need edge visibility. Leaving for future documentation.
         base_layer.GetProperty().SetEdgeOpacity(0.7)
         return base_layer
 
