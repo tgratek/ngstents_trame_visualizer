@@ -791,7 +791,3 @@ class TrameVTKVisualizer:
                     
             tooltip = "Toggle rendering mode ({{ viewMode === 'local' ? 'Local' : 'Remote' }})"
             html.Span(tooltip)
-
-if __name__ == "__main__":
-    visualizer = TrameVTKVisualizer(filename="./tools_demo/test-files/demo.vtk")
-    visualizer.server.start()
