@@ -279,9 +279,16 @@ class PyVistaVTKVisualizer:
 
         colormap = self.state.colormap
 
+        light = pv.Light(position=(10, 10, 10), focal_point=(0, 0, 0), color='white', intensity=1.0)
+        self.plotter.add_light(light)
+
         # The tent layers to stack upon
         self.zActor = self.plotter.add_mesh(
             self.mesh.flip_z(None),
+            diffuse=0.5, 
+            specular=.7, 
+            ambient=0.5, 
+            lighting=True,
             scalars="tentlevel",
             scalar_bar_args=self.sargs,
             cmap=colormap,
@@ -296,6 +303,7 @@ class PyVistaVTKVisualizer:
         # during the times where the zActor is re-rendered from dragging the level slider.
         self.baseActor = self.plotter.add_mesh(
             slice,
+            lighting=True,
             scalars="tentlevel",
             scalar_bar_args=self.sargs,
             cmap=["#93C572"], # Pistachio
