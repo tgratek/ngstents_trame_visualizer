@@ -21,8 +21,8 @@ configure_serializer(encode_lut=True, skip_light=False)
 # RGB Colors
 COLOR_BLACK = (0.0, 0.0, 0.0)
 COLOR_WHITE = (1.0, 1.0, 1.0)
-COLOR_LIGHT = (0.9, 0.9, 0.9)
-COLOR_DARK = (0.1, 0.1, 0.1)
+COLOR_LIGHT = (1.0, 0.98, 0.98)
+COLOR_DARK = (0.32, 0.34, 0.43)
 
 class Representation:
     """
@@ -32,12 +32,10 @@ class Representation:
         Points (int): Representation as points.
         Wireframe (int): Representation as wireframe.
         Surface (int): Representation as a surface.
-        SurfaceWithEdges (int): Representation as a surface with edges.
     """
     Points = 0
     Wireframe = 1
     Surface = 2
-    SurfaceWithEdges = 3
 
 class LookupTable:
     """
@@ -117,7 +115,7 @@ class TrameVTKVisualizer:
         self.renderer.AddActor(self.axes)
 
         # State defaults (triggers callback functions)
-        self.state.mesh_representation = Representation.SurfaceWithEdges
+        self.state.mesh_representation = Representation.Surface
         self.state.z_value = self.default_min
         self.state.cube_axes_visibility = True
         self.state.theme = "light"
@@ -174,24 +172,26 @@ class TrameVTKVisualizer:
                 with layout.toolbar:                
                     with vuetify3.VContainer(fluid=True, classes="d-flex fill-height"):
                         vuetify3.VAppBarTitle(
-                            "VTK Visualization", 
+                            "Spacetime Tents Visualization", 
                             classes="ml-n5 text-button font-weight-black",
                         )
 
                         # Right aligns the containing elements
                         with vuetify3.VToolbarItems():
                             self.light_dark_toggle()
+                            vuetify3.VDivider(vertical=True, classes='mx-1')
                             self.standard_buttons()
 
                 # Side Drawer Components
                 with layout.drawer as drawer:
                     drawer.width = 325
-                    self.drawer_card(title="Controls")
-                    self.representation_dropdown()
-                    self.color_map()
-                    with vuetify3.VContainer(fluid=True, classes="pa-4"):
-                        self.opacity_slider()
+                    vuetify3.VDivider(classes="mb-2")
+                    
+                    with self.drawer_card(title="Controls"):
+                        self.representation_dropdown()
+                        self.color_map()
                         self.level_slider()
+                        self.opacity_slider()
 
                 # Content Area
                 with layout.content:
@@ -199,7 +199,7 @@ class TrameVTKVisualizer:
                         view = trame_vtk.VtkRemoteLocalView(
                             self.render_window,
                             namespace="view",
-                            mode="remote",
+                            mode="local",
                             interactive_ratio=1,
                             interactive_quality=100
                         )
@@ -267,10 +267,7 @@ class TrameVTKVisualizer:
         cutter_mapper.SetInputConnection(cutter.GetOutputPort())
         base_layer = vtk.vtkActor()
         base_layer.SetMapper(cutter_mapper)
-        base_layer.GetProperty().SetColor(0.15, 0.9, 0.15)
-        base_layer.GetProperty().SetOpacity(0.7)
-        base_layer.GetProperty().SetEdgeVisibility(1)
-        base_layer.GetProperty().SetEdgeOpacity(0.7)
+        base_layer.GetProperty().SetColor(0.58, 0.77, 0.45) # "#93C572"
         return base_layer
 
     def setup_axes_actor(self):
@@ -366,6 +363,23 @@ class TrameVTKVisualizer:
             """
             self.update_zlayer(z_value)
         
+        @self.state.change("edges")
+        def update_edges_visibility(edges, **kwargs):
+            """
+            State change callback to update if edges are visible.
+
+            Args:
+                edges (bool): True = Edges are on. False = Off.
+            """
+            if edges:
+                self.base_layer.GetProperty().EdgeVisibilityOn()
+                self.actor.GetProperty().EdgeVisibilityOn()
+            else:
+                self.base_layer.GetProperty().EdgeVisibilityOff()
+                self.actor.GetProperty().EdgeVisibilityOff()
+            
+            self.ctrl.view_update()
+             
         @self.state.change("cube_axes_visibility")
         def update_cube_axes_visibility(cube_axes_visibility, **kwargs):
             """
@@ -430,25 +444,18 @@ class TrameVTKVisualizer:
         Update the representation mode of an actor.
 
         Args:
-            mode (int): The representation mode (Points, Wireframe, Surface, SurfaceWithEdges).
+            mode (int): The representation mode (Points, Wireframe, Surface).
         """
         property = self.actor.GetProperty()
         if mode == Representation.Points:
             property.SetRepresentationToPoints()
             property.SetPointSize(5)
-            property.EdgeVisibilityOff()
         elif mode == Representation.Wireframe:
             property.SetRepresentationToWireframe()
             property.SetPointSize(1)
-            property.EdgeVisibilityOff()
         elif mode == Representation.Surface:
             property.SetRepresentationToSurface()
             property.SetPointSize(1)
-            property.EdgeVisibilityOff()
-        elif mode == Representation.SurfaceWithEdges:
-            property.SetRepresentationToSurface()
-            property.SetPointSize(1)
-            property.EdgeVisibilityOn()
             
         self.ctrl.view_update()
 
@@ -581,14 +588,13 @@ class TrameVTKVisualizer:
         The dropdown UI for selecting different representations, e.g. surface, wireframe, points, etc.
         """
         vuetify3.VSelect(
-            v_model=("mesh_representation", Representation.SurfaceWithEdges),
+            v_model=("mesh_representation", Representation.Surface),
             items=( 
                 "representations",
                 [
                 {"title": "Points", "value": 0},
                 {"title": "Wireframe", "value": 1},
                 {"title": "Surface", "value": 2},
-                {"title": "SurfaceWithEdges", "value": 3},
                ],
             ),
             label="Representation",
@@ -648,12 +654,12 @@ class TrameVTKVisualizer:
         """
         vuetify3.VSlider(
             v_model=("mesh_opacity", 1),
-            min=0,
-            max=1,
-            step=0.05,
+            min=0.0,
+            max=1.0,
+            step=0.01,
             label="Opacity",
             classes="mt-1",
-            prepend_icon="mdi-opacity",
+            append_icon="mdi-opacity",
             hide_details=True,
             max_width=290,
             density="compact",
@@ -672,7 +678,7 @@ class TrameVTKVisualizer:
             step=1,
             label="Level",
             classes="mt-1",
-            prepend_icon="mdi-arrow-up-down-bold",
+            append_icon="mdi-menu-swap-outline",
             hide_details=True,
             max_width=290,
             density="compact",
@@ -728,47 +734,60 @@ class TrameVTKVisualizer:
         """
         Define standard buttons for the GUI, including a checkbox for axes, view type, and a button to reset the camera.
         """
+        with vuetify3.VBtn(icon=True, click=self.ctrl.view_reset_camera):
+            with vuetify3.VTooltip(location='bottom'):
+                with vuetify3.Template(v_slot_activator='{ props }'):
+                    with html.Div(v_bind='props'):
+                        vuetify3.VIcon("mdi-arrow-expand-all")
+                
+                tooltip = "Reset Camera"
+                html.Span(tooltip)
+    
+        vuetify3.VDivider(vertical=True, classes='mx-1')
+            
         with vuetify3.VTooltip(location='bottom'):
             with vuetify3.Template(v_slot_activator='{ props }'):
                 with html.Div(v_bind='props'):
                     vuetify3.VCheckboxBtn(
-                        v_model=("cube_axes_visibility", True),
-                        true_icon="mdi-cube-outline",
-                        false_icon="mdi-cube-off-outline",
-                        classes="mx-1",
-                        hide_details=True,
-                        density="compact"
-                    )
-                    
-            tooltip = "Toggle axes ruler ({{ cube_axes_visibility ? 'On' : 'Off' }})."
-            html.Span(tooltip) 
-                   
-        with vuetify3.VTooltip(location='bottom'):
-            with vuetify3.Template(v_slot_activator='{ props }'):
-                with html.Div(v_bind='props'):
-                    vuetify3.VCheckboxBtn(
-                        v_model=("viewMode", "local"),
-                        true_icon="mdi-lan-disconnect",
-                        true_value="local",
-                        false_icon="mdi-lan-connect",
-                        false_value="remote",
+                        v_model=("edges", False),
+                        true_icon="mdi-grid",
+                        false_icon="mdi-grid-off",
                         classes="mx-1",
                         hide_details=True,
                         density="compact",
                     )
                     
-            tooltip = "Toggle ({{ viewMode === 'local' ? 'Local' : 'Remote' }}) View."
+            tooltip = "Toggle edge visibility ({{ edges ? 'On' : 'Off' }})"
             html.Span(tooltip)
-                    
-        with vuetify3.VBtn(icon=True, click=self.ctrl.view_reset_camera):
-            with vuetify3.VTooltip(location='bottom'):
-                with vuetify3.Template(v_slot_activator='{ props }'):
-                    with html.Div(v_bind='props'):
-                        vuetify3.VIcon("mdi-camera-flip")
-                
-                tooltip = "Reset Camera"
-                html.Span(tooltip)
 
-if __name__ == "__main__":
-    visualizer = TrameVTKVisualizer()
-    visualizer.server.start()
+        with vuetify3.VTooltip(location='bottom'):
+            with vuetify3.Template(v_slot_activator='{ props }'):
+                with html.Div(v_bind='props'):
+                    vuetify3.VCheckboxBtn(
+                        v_model=("cube_axes_visibility", True),
+                        true_icon="mdi-ruler-square",
+                        false_icon="mdi-ruler-square",
+                        classes="mx-1",
+                        hide_details=True,
+                        density="compact"
+                    )
+
+            tooltip = "Toggle ruler ({{ cube_axes_visibility ? 'On' : 'Off' }})"
+            html.Span(tooltip) 
+                
+        with vuetify3.VTooltip(location='bottom'):
+            with vuetify3.Template(v_slot_activator='{ props }'):
+                with html.Div(v_bind='props'):
+                    vuetify3.VCheckboxBtn(
+                        v_model=("viewMode", "local"),
+                        true_icon="mdi-dns",
+                        true_value="remote",
+                        false_icon="mdi-open-in-app",
+                        false_value="local",
+                        classes="mx-1",
+                        hide_details=True,
+                        density="compact",
+                    )
+                    
+            tooltip = "Toggle rendering mode ({{ viewMode === 'local' ? 'Local' : 'Remote' }})"
+            html.Span(tooltip)
