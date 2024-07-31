@@ -637,22 +637,3 @@ class PyVistaVTKVisualizer:
             outlined=True,
             classes="pt-1",
         )
-
-    def test_table(self):
-        with vuetify3.VRow(classes="pt-2", dense=True):
-            with vuetify3.VCol(cols="6"):
-                vuetify3.VCardTitle(
-                    "Default",
-                    classes="grey lighten-1 py-1 grey--text text--darken-3",
-                    style="user-select: none; cursor: pointer",
-                    hide_details=True,
-                    dense=True,
-                )
-            with vuetify3.VCol(cols="6"):
-                vuetify3.VCardTitle(
-                    "Default",
-                    classes="grey lighten-1 py-1 grey--text text--darken-3",
-                    style="user-select: none; cursor: pointer",
-                    hide_details=True,
-                    dense=True,
-                )
