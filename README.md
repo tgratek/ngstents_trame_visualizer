@@ -5,7 +5,7 @@ utilizing the libraries [PyVista](https://github.com/pyvista/pyvista) and [Trame
 This application takes a valid VTK file generated from NGS-Tents, plots the mesh using PyVista's 3D visualization capabilities, and
 encases the viewer around a single-page layout operated by the Vuetify framework made available from Trame.
 
-## Application
+## Applications
 
 Two classes are provided: `PyVistaVTKVisualizer` and `TrameVTKVisualizer`. They are both applications that serve the same
 purpose of wrapping a UI around the mesh visualization, but utilize different libraries and default **rendering methods**.
@@ -15,6 +15,8 @@ purpose of wrapping a UI around the mesh visualization, but utilize different li
   knowledge of VTK.
 - `TrameVTKVisualizer` starts in local client-side rendering by default. This application exists to provide a tolerable method
   to view meshes using client-side rendering, a naturally faster process that uses local resources. Trame relies on direct calls to the VTK API, resulting in more complex and harder to maintain code.
+
+For the sake of development transparency and experimentation, both applications contain a button to switch to the opposite rendering method. We do not advise general users to switch away from the default, especially from `PyVistaVTKVisualizer` Remote -> Local due to the desync issues. Nonetheless, we offer this option to showcase both applications' abilities to use both types of rendering, albeit with some lack of refinement.
 
 **Do not import both classes in a given module**, unless done so conditionally. PyVista uses Trame as a backend, so importing
 both classes can cause conflicts. By default, both applications utilize the same server, so they cannot be used in conjuction. Use one or the other when visualizing a VTK file through a Jupyter Notebook or Python module.
@@ -37,19 +39,18 @@ Once the application downloads the necessary VTK resources, subsequently runtime
 
 ## Known Issues
 
-### Dragging the tents level slider while on local view frequently flashes the remote view.
+### "Toggle axis" state is incorrect upon starting PyVista app
 
-When the rendering mode is local, dragging the tents level slider to render different layers of tents
-may sporadically show the VTK viewer from remote mode whilst dragging. Remote view remains unaffected
-and is more consistent in rendering appearence. This issue is potentially a result of de-syncing issues
-caused between PyVista's visualization and VTK local rendering, hence why PyVista likely falls back to
-the more stable remote view in these flashes.
+The UI from `PyVistaVTKVisualizer` mistakenly shows the "Toggle axis" button as turned off, despite the axes orientation
+widget showing in the bottom left of the viewer.
 
-### "Toggle ruler" occasionally hides all objects on local rendering mode
+_Workaround_: Toggle the button to turn it to its ON state. Clicking the button again will properly hide the axes orientation widget.
 
-When the rendering mode is local, toggling the ruler may cause the scene to de-render all objects. This is likely
-due to the de-syncing issue of local viewing mentioned prior, further emphasized by a PyVista issue expressing
-this same problem: https://github.com/pyvista/pyvista/issues/5736
+### Desync in PyVista Local Rendering
 
-_Workaround_: Toggle the ruler multiple times until the scene restores itself, or simply rerun the cell / refresh
-the localhost window.
+As mentioned, client-side rendering in PyVista suffers problems where state can go out of sync, causing the visualization to entirely de-render or freeze. PyVista often responds to this by falling back to remote server-side rendering, producing a flaky experience.
+This issue occurs when re-renders occur, such as dragging the level slider or toggling the ruler grid.
+
+For the latter example, PyVista affirms such desyncs are a result of their current local rendering pipeline: https://github.com/pyvista/pyvista/issues/5736
+
+There is no definitive workaround, hence why we set the PyVista application's default server rendering to remote and advise against switching to local mode.
