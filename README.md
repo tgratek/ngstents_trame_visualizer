@@ -10,16 +10,20 @@ encases the viewer around a single-page layout operated by the Vuetify framework
 Two classes are provided: `PyVistaVTKVisualizer` and `TrameVTKVisualizer`. They are both applications that serve the same
 purpose of wrapping a UI around the mesh visualization, but utilize different libraries and default **rendering methods**.
 
-- `PyVistaVTKVisualizer` starts in remote server-side rendering by default. PyVista struggles with its local rendering
-  due to desyncing issues, but they offer a very stable remote environment with increased interactivity, at the cost of slower performance. PyVista's simplistic Pythonic API to VTK allows for easier extendability due to needing little to no prior
-  knowledge of VTK.
-- `TrameVTKVisualizer` starts in local client-side rendering by default. This application exists to provide a tolerable method
-  to view meshes using client-side rendering, a naturally faster process that uses local resources. Trame relies on direct calls to the VTK API, resulting in more complex and harder to maintain code.
+- `PyVistaVTKVisualizer` starts with _remote, server-side_ rendering by default.
+  - PyVista struggles with its local rendering due to desyncing issues, but they offer a very stable remote environment with increased interactivity, at the cost of slower performance. 
+  - PyVista's simplistic Pythonic API to VTK allows for easier extendability due to needing little to no prior knowledge of VTK.
+- `TrameVTKVisualizer` starts with _local, client-side_ rendering by default.
+  - This application exists to provide a tolerable method to view meshes using client-side rendering, a naturally faster process that uses local resources.
+  - Trame relies on direct calls to the VTK API, resulting in more complex and harder to maintain code.
 
-For the sake of development transparency and experimentation, both applications contain a button to switch to the opposite rendering method. We do not advise general users to switch away from the default, especially from `PyVistaVTKVisualizer` Remote -> Local due to the desync issues. Nonetheless, we offer this option to showcase both applications' abilities to use both types of rendering, albeit with some lack of refinement.
+For the sake of development transparency and experimentation, both applications contain a button to switch to the opposite rendering method. We do not advise general users to switch 
+away from the default, especially from `PyVistaVTKVisualizer` Remote -> Local due to the desync issues. Nonetheless, we offer this option to showcase both applications' abilities to 
+use both types of rendering, albeit with some lack of refinement.
 
 **Do not import both classes in a given module**, unless done so conditionally. PyVista uses Trame as a backend, so importing
-both classes can cause conflicts. By default, both applications utilize the same server, so they cannot be used in conjuction. Use one or the other when visualizing a VTK file through a Jupyter Notebook or Python module.
+both classes can cause conflicts. By default, both applications utilize the same server, so they cannot be used in conjuction. Use one or the other when visualizing a VTK file through 
+a Jupyter Notebook or Python module.
 
 ## Example Demo
 
@@ -48,7 +52,8 @@ _Workaround_: Toggle the button to turn it to its ON state. Clicking the button 
 
 ### Desync in PyVista Local Rendering
 
-As mentioned, client-side rendering in PyVista suffers problems where state can go out of sync, causing the visualization to entirely de-render or freeze. PyVista often responds to this by falling back to remote server-side rendering, producing a flaky experience.
+As mentioned, client-side rendering in PyVista suffers problems where state can go out of sync, causing the visualization to entirely de-render or freeze. PyVista often responds to 
+this by falling back to remote server-side rendering, producing a flaky experience.
 This issue occurs when re-renders occur, such as dragging the level slider or toggling the ruler grid.
 
 For the latter example, PyVista affirms such desyncs are a result of their current local rendering pipeline: https://github.com/pyvista/pyvista/issues/5736
