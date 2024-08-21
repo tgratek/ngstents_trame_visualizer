@@ -42,8 +42,8 @@ you can run the tools:
 
 ### Notice when Running for the First Time
 
-First execution of either of the applications may take a while (rendering `demo.vtk` took about 20-30 seconds on PyVista).  
-Once the application downloads the necessary VTK resources, subsequently runtime is much faster.
+First execution of either of the applications may take a while.  
+Once the application downloads the necessary VTK resources, runtime is subsequently much faster.
 
 ## Known Issues
 
@@ -57,8 +57,8 @@ _Workaround_: Toggle the button to turn it to its ON state. Clicking the button 
 ### Desync in PyVista Local Rendering
 
 As mentioned, client-side rendering in PyVista suffers problems where state can go out of sync, causing the visualization to entirely de-render or freeze. PyVista often responds to
-this by falling back to remote server-side rendering, producing a flaky experience.
-This issue occurs when re-renders occur, such as dragging the level slider or toggling the ruler grid.
+this by falling back to remote server-side rendering, resulting in an unstable experience.
+This issue occurs during re-rendering, such as during dragging the level slider or toggling the ruler grid.
 
 For the latter example, PyVista affirms such desyncs are a result of their current local rendering pipeline: https://github.com/pyvista/pyvista/issues/5736
 

@@ -1,6 +1,10 @@
 import vtk
 import sys
 
+""" This is helps check any given VTK file to verify whether it has the correct format. 
+    For example, VTK files with machine-error zero must be changed to zero to be correctly read by either PyVistaVTKVisualizer, or TrameVTKVisualizer.
+"""
+
 def read_vtk_file(file_path):
     reader = vtk.vtkUnstructuredGridReader()
     reader.SetFileName(file_path)

@@ -289,7 +289,7 @@ class PyVistaVTKVisualizer:
         )
 
         # Shape frame to stack tent layers on
-        # baseActor is added second so that the rainbow-mapped scalar bar from zActor
+        # baseActor is added after zActor so that the rainbow-mapped scalar bar from zActor
         # is displayed rather than the single color mapped bar from this actor.
         # baseActor needs to know the scalars so that the bar does not momentarily disappear
         # during the times where the zActor is re-rendered from dragging the level slider.

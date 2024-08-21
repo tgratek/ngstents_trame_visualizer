@@ -13,7 +13,7 @@ sys.path.append(os.path.join(current_dir, '../src'))
     This likely occurs because PyVista uses trame as a backend, so importing
     TrameVTKVisualizer conflicts with what PyVista expects.
 
-    As such, the visualizers should not be used together, and should only
+    As such, the visualizers should NOT be used together, and should only
     be imported together if done so conditionally.
 """
 from pyvista_visualizer import PyVistaVTKVisualizer
@@ -22,7 +22,6 @@ from pyvista_visualizer import PyVistaVTKVisualizer
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 try:
-    # TODO: Argument parsing to choose which visualizer to import
     # --port #### will open the instance on the given port.
     
     visualizer = PyVistaVTKVisualizer(filename=os.path.join(ROOT_DIR, "test-files/demo.vtk"))

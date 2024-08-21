@@ -172,7 +172,7 @@ class TrameVTKVisualizer:
                 with layout.toolbar:                
                     with vuetify3.VContainer(fluid=True, classes="d-flex fill-height"):
                         vuetify3.VAppBarTitle(
-                            "Spacetime Tents Visualization", 
+                            "NGS-Tents Visualization", 
                             classes="ml-n5 text-button font-weight-black",
                         )
 
@@ -267,7 +267,7 @@ class TrameVTKVisualizer:
         cutter_mapper.SetInputConnection(cutter.GetOutputPort())
         base_layer = vtk.vtkActor()
         base_layer.SetMapper(cutter_mapper)
-        base_layer.GetProperty().SetColor(0.58, 0.77, 0.45) # "#93C572"
+        base_layer.GetProperty().SetColor(0.58, 0.77, 0.45) # Color in hex - "#93C572"
         return base_layer
 
     def setup_axes_actor(self):
@@ -278,12 +278,6 @@ class TrameVTKVisualizer:
             vtkCubeAxesActor(): The actor to be added to the renderer.
         """
         axes = vtk.vtkCubeAxesActor()
-        # axes.DrawXGridpolysOn() # Adds a poly section
-        # axes.DrawYGridpolysOn()
-        # axes.DrawXInnerGridlinesOn() # Unsure on this as they seem to have height
-        # axes.DrawYInnerGridlinesOn() # Unsure on this as they seem to have height
-        # axes.DrawXGridlinesOn()
-        # axes.DrawYGridlinesOn()
         axes.SetBounds(self.actor.GetBounds())
         axes.SetCamera(self.renderer.GetActiveCamera())
         axes.SetXLabelFormat("%.1e")
@@ -394,7 +388,7 @@ class TrameVTKVisualizer:
         @self.state.change("theme")
         def update_theme(theme, **kwargs):
             """
-            Adjusts the color scheme of the renderer background, fonts, and the axes.
+            Adjusts the color scheme of the renderer background, fonts, scalar bar, and the axes.
 
             Args:
                 theme ("light"/"dark"): Light or Dark theme from toggling associated button. 
@@ -410,24 +404,23 @@ class TrameVTKVisualizer:
                     gridline_color (tuple[float, float, float]): RGB values as a tuple.
                     text_color (tuple[float, float, float]): RGB values as a tuple.
                 """
-                # Background Color
                 self.renderer.SetBackground(*background_color)
-                # Axes Lines Color
+
                 self.axes.GetXAxesLinesProperty().SetColor(*axis_color)
                 self.axes.GetYAxesLinesProperty().SetColor(*axis_color)
                 self.axes.GetZAxesLinesProperty().SetColor(*axis_color)
-                # Axes Inner Lines Color
+
                 self.axes.GetXAxesInnerGridlinesProperty().SetColor(*gridline_color)
                 self.axes.GetYAxesInnerGridlinesProperty().SetColor(*gridline_color)
                 self.axes.GetZAxesInnerGridlinesProperty().SetColor(*gridline_color)
-                # Axes Title Color
+
                 self.axes.GetTitleTextProperty(0).SetColor(*text_color)
                 self.axes.GetLabelTextProperty(0).SetColor(*text_color)
                 self.axes.GetLabelTextProperty(1).SetColor(*text_color)
                 self.axes.GetTitleTextProperty(1).SetColor(*text_color)
                 self.axes.GetLabelTextProperty(2).SetColor(*text_color)
                 self.axes.GetTitleTextProperty(2).SetColor(*text_color)
-                # Scalar Bar Color
+
                 self.scalar_bar.GetTitleTextProperty().SetColor(*text_color)
                 self.scalar_bar.GetLabelTextProperty().SetColor(*text_color)
             
@@ -628,7 +621,6 @@ class TrameVTKVisualizer:
                 )
             with vuetify3.VCol(cols="6"):
                 vuetify3.VSelect(
-                    # Color Map
                     label="Colormap",
                     v_model=("mesh_color_preset", LookupTable.Rainbow),
                     items=(
@@ -653,7 +645,7 @@ class TrameVTKVisualizer:
         Vuetify slider for controlling the opacity. Uses `"mesh_opacity"` for callbacks.
         """
         vuetify3.VSlider(
-            v_model=("mesh_opacity", 1),
+            v_model=("mesh_opacity", 1.0),
             min=0.0,
             max=1.0,
             step=0.01,
