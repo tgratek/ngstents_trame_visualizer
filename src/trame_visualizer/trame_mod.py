@@ -64,7 +64,7 @@ class TrameVTKVisualizer:
     different z-axis layers. The UI provides options for different representations and
     color maps.
     """
-    def __init__(self, filename="test-files/demo.vtk"):
+    def __init__(self, filename):
         # Public Data Members
         self.server = get_server(client_type="vue3")
         self.filename = filename

@@ -29,7 +29,7 @@ class ColorMap:
 # Main Application Class
 # -----------------------------------------------------------------------------
 class PyVistaVTKVisualizer:
-    def __init__(self, filename="test-files/demo.vtk"):
+    def __init__(self, filename):
         # Setup Parameters for Plotting
         pv.global_theme.load_theme(self.setup_theme())
 
