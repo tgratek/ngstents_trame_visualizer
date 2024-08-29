@@ -29,7 +29,7 @@ class ColorMap:
 # Main Application Class
 # -----------------------------------------------------------------------------
 class PyVistaVTKVisualizer:
-    def __init__(self, filename="test-files/demo.vtk"):
+    def __init__(self, filename):
         # Setup Parameters for Plotting
         pv.global_theme.load_theme(self.setup_theme())
 
@@ -289,7 +289,7 @@ class PyVistaVTKVisualizer:
         )
 
         # Shape frame to stack tent layers on
-        # baseActor is added second so that the rainbow-mapped scalar bar from zActor
+        # baseActor is added after zActor so that the rainbow-mapped scalar bar from zActor
         # is displayed rather than the single color mapped bar from this actor.
         # baseActor needs to know the scalars so that the bar does not momentarily disappear
         # during the times where the zActor is re-rendered from dragging the level slider.
