@@ -1,4 +1,4 @@
-# NGSTents PyVista + Trame Visualizer
+# NGS-Tents PyVista + Trame Visualizer
 
 A prototype application meant for better visualizing meshes generated from [NGS-Tents](https://github.com/jayggg/ngstents) through
 utilizing the libraries [PyVista](https://github.com/pyvista/pyvista) and [Trame](https://github.com/Kitware/trame).
