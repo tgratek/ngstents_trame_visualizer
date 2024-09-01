@@ -9,6 +9,10 @@ Refer to NGS-Tents' [documentation](https://jayggg.github.io/ngstents/StartPitch
 for the application. The documentation also showcases the existing NGSolve visualizations that this new visualizer is aiming
 to improve upon and provide a means to dynamically render various tent levels within the interface.
 
+_Portland State University Computer Science Capstone, Spring - Summer 2024_
+
+<img src="https://github.com/user-attachments/assets/8e95566b-4b15-4635-b26b-e7257c4fa4f5" alt="psulogo" width="250" />
+
 ## Applications
 
 Two classes are provided: `PyVistaVTKVisualizer` and `TrameVTKVisualizer`. They are both applications that serve the same
